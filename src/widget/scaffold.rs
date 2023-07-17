@@ -87,12 +87,12 @@ impl Scaffold {
 
 impl Widget for Scaffold {
     fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: softbuffer::Rect) {
-        let ((appbar_width, appbar_width_offset), (child_width, child_width_offset)) = self.get_childs_width_and_offset(rect.width);
-        let ((appbar_height, appbar_height_offset), (child_height, child_height_offset)) = self.get_childs_height_and_offset(rect.height);
+        let ((appbar_width, appbar_x_offset), (child_width, child_width_offset)) = self.get_childs_width_and_offset(rect.width);
+        let ((appbar_height, appbar_y_offset), (child_height, child_height_offset)) = self.get_childs_height_and_offset(rect.height);
         match (NonZeroU32::new(appbar_width), NonZeroU32::new(appbar_height)) {
             (Some(width), Some(height)) => self.appbar.draw(canvas, softbuffer::Rect {
-                x: rect.x + appbar_width_offset,
-                y: rect.y + appbar_height_offset,
+                x: rect.x + appbar_x_offset,
+                y: rect.y + appbar_y_offset,
                 width,
                 height,
             }),

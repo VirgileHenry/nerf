@@ -8,3 +8,12 @@ edition = "2021"
 [dependencies]
 softbuffer = "0.3.0"
 winit = "0.28.6"
+
+
+
+[dev-dependencies]
+criterion = "0.3.0"
+
+[[bench]]
+name = "nerf"
+harness = false

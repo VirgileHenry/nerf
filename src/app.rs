@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use crate::{widget::Widget, drawing::canvas::Canvas};
 
-use self::event::NerfEvent;
+use self::event::nerf_event::NerfEvent;
 
 pub(crate) mod event;
 

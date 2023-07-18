@@ -182,20 +182,22 @@ impl WidgetSizeRequirement {
                     _ => {},
                 }
             }
-            // assign remaining pixels to first assignable values
-            for (i, requirement) in requirements.iter().enumerate() {
-                match requirement {
-                    WidgetSizeRequirement::Max(max) |
-                    WidgetSizeRequirement::MinMax(_, max)  => if sizes[i] + remaining_space <= max.get() {
-                        sizes[i] += remaining_space;
-                        break;
+            // finally, it may remains pixels because of euclidian div: assign it to the widgets
+            while remaining_space > 0 {
+                for (i, requirement) in requirements.iter().enumerate() {
+                    match requirement {
+                        WidgetSizeRequirement::Max(max) |
+                        WidgetSizeRequirement::MinMax(_, max)  => if sizes[i] + remaining_space <= max.get() {
+                            sizes[i] += 1.min(remaining_space);
+                            remaining_space -= 1.min(remaining_space);
+                        }
+                        WidgetSizeRequirement::Min(_) |
+                        WidgetSizeRequirement::Flex(_) => {
+                            sizes[i] += 1.min(remaining_space);
+                            remaining_space -= 1.min(remaining_space);
+                        },
+                        _ => {},
                     }
-                    WidgetSizeRequirement::Min(_) |
-                    WidgetSizeRequirement::Flex(_) => {
-                        sizes[i] += remaining_space;
-                        break;
-                    },
-                    _ => {},
                 }
             }
 
@@ -234,15 +236,17 @@ fn fill_available_space<const N: usize>(requirements: [WidgetSizeRequirement; N]
         }
     }
     // finally, it may remains a pixel because of euclidian div: assign it to the first widget
-    for (i, requirement) in requirements.iter().enumerate() {
-        match requirement {
-            WidgetSizeRequirement::Fixed(_) |
-            WidgetSizeRequirement::Min(_) |
-            WidgetSizeRequirement::MinMax(_, _) => {
-                sizes[i] += remaining_space;
-                break;
-            },
-            _ => {},
+    while remaining_space > 0 {
+        for (i, requirement) in requirements.iter().enumerate() {
+            match requirement {
+                WidgetSizeRequirement::Fixed(_) |
+                WidgetSizeRequirement::Min(_) |
+                WidgetSizeRequirement::MinMax(_, _) => {
+                    sizes[i] += 1.min(remaining_space);
+                    remaining_space -= 1.min(remaining_space);
+                },
+                _ => {},
+            }
         }
     }
 

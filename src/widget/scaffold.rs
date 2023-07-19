@@ -5,7 +5,7 @@ use crate::{
     geometry::{
         size_requirements::WidgetSizeRequirement,
         screen_side::ScreenSide
-    }
+    }, app::event::input_event::InputEvent
 };
 
 /// The Scaffold is a widget with an app bar and a child.
@@ -128,5 +128,30 @@ impl Widget for Scaffold {
                 )
             },
         }
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        // we can't or the function calls, as lazy eval may skip a event propagation.
+        let ((appbar_width, appbar_x_offset), (child_width, child_x_offset)) = self.get_childs_width_and_offset(rect.width);
+        let ((appbar_height, appbar_y_offset), (child_height, child_y_offset)) = self.get_childs_height_and_offset(rect.height);
+        let result1 = match (NonZeroU32::new(appbar_width), NonZeroU32::new(appbar_height)) {
+            (Some(width), Some(height)) => self.appbar.handle_event(event.clone(), softbuffer::Rect {
+                x: rect.x + appbar_x_offset,
+                y: rect.y + appbar_y_offset,
+                width,
+                height,
+            }),
+            _ => false, // either width or height is 0, so we don't draw the appbar
+        };
+        let result2 = match (NonZeroU32::new(child_width), NonZeroU32::new(child_height)) {
+            (Some(width), Some(height)) => self.child.handle_event(event.clone(), softbuffer::Rect {
+                x: rect.x + child_x_offset,
+                y: rect.y + child_y_offset,
+                width,
+                height,
+            }),
+            _ => false, // either width or height is 0, so we don't draw the child
+        };
+        result1 || result2
     }
 }

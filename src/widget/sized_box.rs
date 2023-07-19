@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use crate::{
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas,
+    drawing::canvas::Canvas, app::event::input_event::InputEvent,
 };
 
 use super::Widget;
@@ -114,5 +114,9 @@ impl Widget for SizedBox {
             SizedBoxConstraints::Width(width) => (WidgetSizeRequirement::Fixed(width), self.child.min_space_requirements().1),
             SizedBoxConstraints::Height(height) => (self.child.min_space_requirements().0, WidgetSizeRequirement::Fixed(height)),
         }
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        self.child.handle_event(event, rect)
     }
 }

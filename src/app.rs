@@ -2,13 +2,14 @@ use std::num::NonZeroU32;
 
 use crate::{widget::Widget, drawing::canvas::Canvas};
 
-use self::event::nerf_event::NerfEvent;
+use self::event::{nerf_event::NerfEvent, input_event::InputEvent};
 
 pub(crate) mod event;
+pub(crate) mod app_context;
 
 pub struct App {
     window: winit::window::Window,
-    event_loop: winit::event_loop::EventLoop<NerfEvent>,
+    event_loop: Option<winit::event_loop::EventLoop<NerfEvent>>,
     #[allow(unused)]
     context: softbuffer::Context,
     surface: softbuffer::Surface,
@@ -32,7 +33,7 @@ impl App {
 
         Self {
             window,
-            event_loop,
+            event_loop: Some(event_loop),
             context,
             surface,
             root,
@@ -40,22 +41,16 @@ impl App {
     }
 
     pub fn run(mut self) {
-        self.event_loop.run(move |event, _, control_flow| {
+        let event_loop = self.event_loop.take().unwrap();
+        event_loop.run(move |event, _, control_flow| {
             *control_flow = winit::event_loop::ControlFlow::Wait;
             match event {
-                winit::event::Event::WindowEvent { event, .. } => match event {
-                    winit::event::WindowEvent::CloseRequested => {
-                        *control_flow = winit::event_loop::ControlFlow::Exit;
-                    }
-                    winit::event::WindowEvent::Resized(size) => match (NonZeroU32::new(size.width), NonZeroU32::new(size.height)) {
-                        (Some(width), Some(height)) => {
-                            let _ = self.surface.resize(width, height); // todo handle error
-                        },
-                        _ => {}, // window got resized to size 0, ignore. It wont be drawn anyway.
-                    }
-                    _ => {}
-                },
+                winit::event::Event::WindowEvent { event, .. } => self.handle_window_event(
+                    control_flow,
+                    event,
+                ),
                 winit::event::Event::MainEventsCleared => {
+                    // todo : redraw only if requested ? this will redraw after every mouse move for example.
                     self.window.request_redraw();
                 }
                 winit::event::Event::RedrawRequested(window_id) => if window_id == self.window.id() {
@@ -63,19 +58,13 @@ impl App {
                         let size = self.window.inner_size();
                         (size.width, size.height)
                     };
-                    let mut canvas = Canvas::new(&mut self.surface, width);
-                    let rect = softbuffer::Rect {
-                        x: 0,
-                        y: 0,
-                        width: match NonZeroU32::new(width) {
-                            Some(size) => size,
-                            None => return, // unable to draw to size 0 canvas (+ useless)
+                    let rect = match (NonZeroU32::new(width), NonZeroU32::new(height)) {
+                        (Some(width), Some(height)) => softbuffer::Rect {
+                            x: 0, y: 0, width, height,
                         },
-                        height: match NonZeroU32::new(height) {
-                            Some(size) => size,
-                            None => return, // unable to draw to size 0 canvas (+ useless)
-                        },
+                        _ => return, // unable to draw to size 0 canvas (+ useless)
                     };
+                    let mut canvas = Canvas::new(&mut self.surface, width);
                     self.root.draw(&mut canvas, rect);
 
                     let _ = canvas.buffer().present(); // todo handle error
@@ -84,4 +73,40 @@ impl App {
             }
         });
     }
+
+    fn handle_window_event(
+        &mut self,
+        control_flow: &mut winit::event_loop::ControlFlow,
+        event: winit::event::WindowEvent,
+    ) {
+        match event {
+            winit::event::WindowEvent::CloseRequested => {
+                *control_flow = winit::event_loop::ControlFlow::Exit;
+            }
+            winit::event::WindowEvent::Resized(size) => match (NonZeroU32::new(size.width), NonZeroU32::new(size.height)) {
+                (Some(width), Some(height)) => {
+                    let _ = self.surface.resize(width, height); // todo handle error
+                },
+                _ => {}, // window got resized to size 0, ignore. It wont be drawn anyway.
+            },
+            _ => match InputEvent::try_from(event) {
+                Some(event) => {
+                    let (width, height) = {
+                        let size = self.window.inner_size();
+                        (size.width, size.height)
+                    };
+                    let rect = match (NonZeroU32::new(width), NonZeroU32::new(height)) {
+                        (Some(width), Some(height)) => softbuffer::Rect {
+                            x: 0, y: 0, width, height,
+                        },
+                        _ => return, // unable to handle event for size 0 rect, as we need to pass a rect. should we handle anyway ?
+                    };
+                    self.root.handle_event(event, rect);
+                },
+                None => {}
+            }
+        }
+    }
+
+
 }

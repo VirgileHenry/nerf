@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use crate::{
     Widget,
-    geometry::{alignment::Alignment, size_requirements::WidgetSizeRequirement}
+    geometry::{alignment::Alignment, size_requirements::WidgetSizeRequirement}, app::event::input_event::InputEvent
 };
 
 
@@ -42,24 +42,33 @@ impl Align {
             },
         }
     }
+
+    fn compute_child_rect(&self, from_rect: softbuffer::Rect) -> softbuffer::Rect {
+        let (width_req, height_req) = self.child.min_space_requirements();
+        let (child_width, remaining_width) = Self::get_child_and_remaining_size(width_req, from_rect.width);
+        let (child_height, remaining_height) = Self::get_child_and_remaining_size(height_req, from_rect.height);
+        softbuffer::Rect {
+            x: from_rect.x + self.alignment.get_left_space(remaining_width),
+            y: from_rect.y + self.alignment.get_top_space(remaining_height),
+            width: child_width,
+            height: child_height,
+        }
+    }
 }
 
 impl Widget for Align {
     fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: softbuffer::Rect) {
-        let (width_req, height_req) = self.child.min_space_requirements();
-        let (child_width, remaining_width) = Self::get_child_and_remaining_size(width_req, rect.width);
-        let (child_height, remaining_height) = Self::get_child_and_remaining_size(height_req, rect.height);
-        let child_rect = softbuffer::Rect {
-            x: rect.x + self.alignment.get_left_space(remaining_width),
-            y: rect.y + self.alignment.get_top_space(remaining_height),
-            width: child_width,
-            height: child_height,
-        };
+        let child_rect = self.compute_child_rect(rect);
         self.child.draw(canvas, child_rect);
     }
 
     fn min_space_requirements(&self) -> (crate::geometry::size_requirements::WidgetSizeRequirement, crate::geometry::size_requirements::WidgetSizeRequirement) {
         self.child.min_space_requirements()
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        let child_rect = self.compute_child_rect(rect);
+        self.child.handle_event(event, child_rect)
     }
 }
 

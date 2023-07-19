@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use crate::{Widget, geometry::size_requirements::WidgetSizeRequirement};
+use crate::{Widget, geometry::size_requirements::WidgetSizeRequirement, app::event::input_event::InputEvent};
 
 
 /// The Row widget will take a const generic parameter number of children, and will display them vertically.
@@ -73,4 +73,29 @@ impl<const N: usize> Widget for Row<N> {
             self.get_height_requirement(height_requirements),
         )
     }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        let mut width_requirements = [WidgetSizeRequirement::None; N];
+        for (i, child) in self.children.iter().enumerate() {
+            width_requirements[i] = child.min_space_requirements().0;
+        }
+        let widths = WidgetSizeRequirement::distribute_available_size(width_requirements, rect.width);
+        let mut offset = 0;
+        let mut result = false;
+        for (child, width) in self.children.iter_mut().zip(widths.into_iter()) {
+            match NonZeroU32::new(width) {
+                Some(width) => result |= child.handle_event(event.clone(), softbuffer::Rect {
+                    x: rect.x + offset,
+                    y: rect.y,
+                    width,
+                    height: rect.height,
+                }),
+                None => {},
+            }
+            offset += width;
+        }
+        result
+    }
+
+
 }

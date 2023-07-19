@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use crate::{Widget, geometry::size_requirements::WidgetSizeRequirement};
+use crate::{Widget, geometry::size_requirements::WidgetSizeRequirement, app::event::input_event::InputEvent};
 
 
 /// The Column widget will take a const generic parameter number of children, and will display them vertically.
@@ -72,5 +72,28 @@ impl<const N: usize> Widget for Column<N> {
             self.get_width_requirement(width_requirements),
             self.get_height_requirement(height_requirements),
         )
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        let mut height_requirements = [WidgetSizeRequirement::None; N];
+        for (i, child) in self.children.iter().enumerate() {
+            height_requirements[i] = child.min_space_requirements().1;
+        }
+        let heights = WidgetSizeRequirement::distribute_available_size(height_requirements, rect.height);
+        let mut offset = 0;
+        let mut result = false;
+        for (child, height) in self.children.iter_mut().zip(heights.into_iter()) {
+            match NonZeroU32::new(height) {
+                Some(height) => result |= child.handle_event(event.clone(), softbuffer::Rect {
+                    x: rect.x,
+                    y: rect.y + offset,
+                    width: rect.width,
+                    height,
+                }),
+                None => {},
+            }
+            offset += height;
+        }
+        result
     }
 }

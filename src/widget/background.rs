@@ -1,7 +1,7 @@
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::{color::Color, canvas::Canvas}
+    drawing::{color::Color, canvas::Canvas}, app::event::input_event::InputEvent
 };
 
 
@@ -18,6 +18,10 @@ impl Background {
             color,
         })
     }
+
+    pub fn set_color(&mut self, color: Color) {
+        self.color = color;
+    }
 }
 
 impl Widget for Background {
@@ -28,5 +32,9 @@ impl Widget for Background {
 
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement) {
         self.child.min_space_requirements()       
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        self.child.handle_event(event, rect)
     }
 }

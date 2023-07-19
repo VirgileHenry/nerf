@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use crate::{Widget, geometry::size_requirements::WidgetSizeRequirement};
+use crate::{Widget, geometry::size_requirements::WidgetSizeRequirement, app::event::input_event::InputEvent};
 
 
 
@@ -23,6 +23,10 @@ impl Widget for Expanded {
             WidgetSizeRequirement::Flex(self.flex),
             WidgetSizeRequirement::Flex(self.flex),
         )
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        self.child.handle_event(event, rect)
     }
 }
 

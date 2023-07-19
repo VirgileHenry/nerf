@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use crate::{geometry::size_requirements::WidgetSizeRequirement, drawing::canvas::Canvas};
+use crate::{geometry::size_requirements::WidgetSizeRequirement, drawing::canvas::Canvas, app::event::input_event::InputEvent};
 
 use super::Widget;
 
@@ -37,27 +37,35 @@ impl Center {
             },
         }
     }
-}
 
-impl Widget for Center {
-    fn draw(&self, buffer: &mut Canvas, rect: softbuffer::Rect) {
-        // get the size requirements of our child
+    fn compute_child_rect(&self, from_rect: softbuffer::Rect) -> softbuffer::Rect {
         let (
             width_requirement,
             height_requirement
         ) = self.child.min_space_requirements();
-        let (width, width_spacing) = Self::get_child_size_and_spacing(width_requirement, rect.width);
-        let (height, height_spacing) = Self::get_child_size_and_spacing(height_requirement, rect.height);
-        let rect = softbuffer::Rect {
-            x: rect.x + width_spacing,
-            y: rect.y + height_spacing,
+        let (width, width_spacing) = Self::get_child_size_and_spacing(width_requirement, from_rect.width);
+        let (height, height_spacing) = Self::get_child_size_and_spacing(height_requirement, from_rect.height);
+        softbuffer::Rect {
+            x: from_rect.x + width_spacing,
+            y: from_rect.y + height_spacing,
             width,
             height,
-        };
+        }
+    }
+}
+
+impl Widget for Center {
+    fn draw(&self, buffer: &mut Canvas, rect: softbuffer::Rect) {
+        let rect = self.compute_child_rect(rect);
         self.child.draw(buffer, rect);
     }
 
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement) {
         self.child.min_space_requirements()
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        let rect = self.compute_child_rect(rect);
+        self.child.handle_event(event, rect)
     }
 }

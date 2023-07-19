@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas
+    drawing::canvas::Canvas, app::event::input_event::InputEvent
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -126,27 +126,33 @@ impl Padder {
             }
         }
     }
+
+    fn compute_child_rect(&self, from_rect: softbuffer::Rect) -> Option<softbuffer::Rect> {
+        let child_width = match NonZeroU32::new(self.get_child_remaining_width(from_rect.width)) {
+            Some(size) => size,
+            None => return None, // no space left for child, don't draw at all
+        };
+        let child_height = match NonZeroU32::new(self.get_child_remaining_height(from_rect.height)) {
+            Some(size) => size,
+            None => return None, // no space left for child, don't draw at all
+        };
+        let left_pad = self.get_left_pad(from_rect.width, child_width);
+        let top_pad = self.get_top_pad(from_rect.height, child_height);
+        Some(softbuffer::Rect {
+            x: from_rect.x + left_pad,
+            y: from_rect.y + top_pad,
+            width: child_width,
+            height: child_height,
+        })
+    }
 }
 
 impl Widget for Padder {
     fn draw(&self, buffer: &mut Canvas, rect: softbuffer::Rect) {
-        let child_width = match NonZeroU32::new(self.get_child_remaining_width(rect.width)) {
-            Some(size) => size,
-            None => return, // no space left for child, don't draw at all
+        match self.compute_child_rect(rect) {
+            Some(rect) => self.child.draw(buffer, rect),
+            None => {}, // no space left for child, don't draw at all
         };
-        let child_height = match NonZeroU32::new(self.get_child_remaining_height(rect.height)) {
-            Some(size) => size,
-            None => return, // no space left for child, don't draw at all
-        };
-        let left_pad = self.get_left_pad(rect.width, child_width);
-        let top_pad = self.get_top_pad(rect.height, child_height);
-        let rect = softbuffer::Rect {
-            x: rect.x + left_pad,
-            y: rect.y + top_pad,
-            width: child_width,
-            height: child_height,
-        };
-        self.child.draw(buffer, rect);
     }
 
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement) {
@@ -174,5 +180,12 @@ impl Widget for Padder {
             }
         };
         (width_requirement, height_requirement)
+    }
+
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+        match self.compute_child_rect(rect) {
+            Some(rect) => self.child.handle_event(event, rect),
+            None => false,
+        }
     }
 }

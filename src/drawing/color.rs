@@ -14,4 +14,16 @@ impl Color {
     pub fn value(self) -> u32 {
         (self.r as u32) << 16 | (self.g as u32) << 8 | (self.b as u32)
     } 
+
+    pub fn r(self) -> u8 {
+        self.r
+    }
+
+    pub fn g(self) -> u8 {
+        self.g
+    }
+
+    pub fn b(self) -> u8 {
+        self.b
+    }
 }

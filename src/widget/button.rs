@@ -54,7 +54,7 @@ impl Widget for Button {
                 true
             },
             (InputEvent::CursorMoved { position }, ButtonState::PressedLeft) => if position.is_in_rect(rect) {
-                self.state = ButtonState::Hovered;
+                self.state = ButtonState::Pressed;
                 true
             } else {
                 false

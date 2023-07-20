@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas, app::event::input_event::InputEvent
+    drawing::canvas::Canvas, app::event::{input_event::InputEvent, event_responses::EventResponse}
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -182,10 +182,10 @@ impl Widget for Padder {
         (width_requirement, height_requirement)
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
         match self.compute_child_rect(rect) {
             Some(rect) => self.child.handle_event(event, rect),
-            None => false,
+            None => EventResponse::NONE,
         }
     }
 }

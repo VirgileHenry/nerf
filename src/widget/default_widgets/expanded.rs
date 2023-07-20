@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    app::event::input_event::InputEvent
+    app::event::{input_event::InputEvent, event_responses::EventResponse}
 };
 
 
@@ -29,7 +29,7 @@ impl Widget for Expanded {
         )
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
         self.child.handle_event(event, rect)
     }
 }

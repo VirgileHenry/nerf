@@ -1,7 +1,7 @@
 
 use crate::{
     Widget,
-    app::event::input_event::InputEvent
+    app::event::{input_event::InputEvent, event_responses::EventResponse}
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,52 +36,53 @@ impl Widget for Button {
         self.child.min_space_requirements()
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
-        match (event, self.state) {
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+        let own_response = match (event.clone(), self.state) {
             (InputEvent::CursorMoved { position }, ButtonState::Idle) => if position.is_in_rect(rect) {
                 self.state = ButtonState::Hovered;
-                true
+                EventResponse::REDRAW_REQUEST
             } else {
-                false
+                EventResponse::NONE
             },
             (InputEvent::CursorMoved { position }, ButtonState::Hovered) => if position.is_in_rect(rect) {
-                false
+                EventResponse::NONE
             } else {
                 self.state = ButtonState::Idle;
-                true
+                EventResponse::REDRAW_REQUEST
             },
             (InputEvent::CursorMoved { position }, ButtonState::Pressed) => if position.is_in_rect(rect) {
-                false
+                EventResponse::NONE
             } else {
                 self.state = ButtonState::PressedLeft;
-                true
+                EventResponse::REDRAW_REQUEST
             },
             (InputEvent::CursorMoved { position }, ButtonState::PressedLeft) => if position.is_in_rect(rect) {
                 self.state = ButtonState::Pressed;
-                true
+                EventResponse::REDRAW_REQUEST
             } else {
-                false
+                EventResponse::NONE
             },
             (InputEvent::MouseInput { state, button }, ButtonState::Hovered) => if state == winit::event::ElementState::Pressed && button == winit::event::MouseButton::Left {
                 self.state = ButtonState::Pressed;
-                true
+                EventResponse::REDRAW_REQUEST
             } else {
-                false
+                EventResponse::NONE
             },
             (InputEvent::MouseInput { state, button }, ButtonState::Pressed) => if state == winit::event::ElementState::Released && button == winit::event::MouseButton::Left {
                 self.state = ButtonState::Hovered;
-                true
+                EventResponse::REDRAW_REQUEST | EventResponse::CALLBACK
             } else {
-                false
+                EventResponse::NONE
             },
             (InputEvent::MouseInput { state, button }, ButtonState::PressedLeft) => if state == winit::event::ElementState::Released && button == winit::event::MouseButton::Left {
                 self.state = ButtonState::Idle;
-                true
+                EventResponse::REDRAW_REQUEST
             } else {
-                false
+                EventResponse::NONE
             },
-            _ => false,
+            _ => EventResponse::NONE,
+        };
 
-        }
+        own_response | self.child.handle_event(event, rect)
     }
 }

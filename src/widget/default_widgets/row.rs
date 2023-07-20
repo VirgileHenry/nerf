@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    app::event::input_event::InputEvent
+    app::event::{input_event::InputEvent, event_responses::EventResponse}
 };
 
 
@@ -78,17 +78,17 @@ impl<const N: usize> Widget for Row<N> {
         )
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
         let mut width_requirements = [WidgetSizeRequirement::None; N];
         for (i, child) in self.children.iter().enumerate() {
             width_requirements[i] = child.min_space_requirements().0;
         }
         let widths = WidgetSizeRequirement::distribute_available_size(width_requirements, rect.width);
         let mut offset = 0;
-        let mut result = false;
+        let mut result = EventResponse::NONE;
         for (child, width) in self.children.iter_mut().zip(widths.into_iter()) {
             match NonZeroU32::new(width) {
-                Some(width) => result |= child.handle_event(event.clone(), softbuffer::Rect {
+                Some(width) => result = result | child.handle_event(event.clone(), softbuffer::Rect {
                     x: rect.x + offset,
                     y: rect.y,
                     width,

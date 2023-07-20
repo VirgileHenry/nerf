@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     geometry::size_requirements::WidgetSizeRequirement,
     drawing::canvas::Canvas,
-    app::event::input_event::InputEvent,
+    app::event::{input_event::InputEvent, event_responses::EventResponse},
     Widget
 };
 
@@ -67,7 +67,7 @@ impl Widget for Center {
         self.child.min_space_requirements()
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool {
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
         let rect = self.compute_child_rect(rect);
         self.child.handle_event(event, rect)
     }

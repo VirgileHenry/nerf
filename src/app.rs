@@ -14,6 +14,7 @@ pub struct App {
     context: softbuffer::Context,
     surface: softbuffer::Surface,
     root: Box<dyn Widget>,
+    request_redraw: bool,
 }
 
 impl App {
@@ -37,6 +38,7 @@ impl App {
             context,
             surface,
             root,
+            request_redraw: true,
         }
     }
 
@@ -49,8 +51,8 @@ impl App {
                     control_flow,
                     event,
                 ),
-                winit::event::Event::MainEventsCleared => {
-                    // todo : redraw only if requested ? this will redraw after every mouse move for example.
+                winit::event::Event::MainEventsCleared => if self.request_redraw {
+                    self.request_redraw = false;
                     self.window.request_redraw();
                 }
                 winit::event::Event::RedrawRequested(window_id) => if window_id == self.window.id() {
@@ -64,7 +66,8 @@ impl App {
                         },
                         _ => return, // unable to draw to size 0 canvas (+ useless)
                     };
-                    let mut canvas = Canvas::new(&mut self.surface, width);
+                    let mut canvas = Canvas::new(&mut self.surface, width, height);
+
                     self.root.draw(&mut canvas, rect);
 
                     let _ = canvas.buffer().present(); // todo handle error
@@ -86,6 +89,7 @@ impl App {
             winit::event::WindowEvent::Resized(size) => match (NonZeroU32::new(size.width), NonZeroU32::new(size.height)) {
                 (Some(width), Some(height)) => {
                     let _ = self.surface.resize(width, height); // todo handle error
+                    self.request_redraw = true;
                 },
                 _ => {}, // window got resized to size 0, ignore. It wont be drawn anyway.
             },
@@ -101,10 +105,17 @@ impl App {
                         },
                         _ => return, // unable to handle event for size 0 rect, as we need to pass a rect. should we handle anyway ?
                     };
-                    self.root.handle_event(event, rect);
+                    let response = self.root.handle_event(event, rect);
+                    self.handle_response_flags(response);
                 },
                 None => {}
             }
+        }
+    }
+
+    fn handle_response_flags(&mut self, response: event::event_responses::EventResponse) {
+        if response.contains(event::event_responses::EventResponse::REDRAW_REQUEST) {
+            self.request_redraw = true;
         }
     }
 

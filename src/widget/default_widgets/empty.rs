@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     geometry::size_requirements::WidgetSizeRequirement,
     drawing::canvas::Canvas,
-    Widget
+    Widget, app::event::event_responses::EventResponse
 };
 
 pub enum EmptyBehavior {
@@ -45,7 +45,7 @@ impl Widget for Empty {
         }
     }
 
-    fn handle_event(&mut self, _event: crate::app::event::input_event::InputEvent, _rect: softbuffer::Rect) -> bool {
-        false
+    fn handle_event(&mut self, _event: crate::app::event::input_event::InputEvent, _rect: softbuffer::Rect) -> EventResponse {
+        EventResponse::NONE
     }
 }

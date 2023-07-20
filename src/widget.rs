@@ -1,10 +1,19 @@
 use crate::{
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas, app::event::input_event::InputEvent
+    drawing::canvas::Canvas, app::event::{input_event::InputEvent, event_responses::EventResponse}
 };
 
 
 pub(crate) mod default_widgets;
+#[cfg(feature = "skia")]
+pub(crate) mod skia_widgets;
+#[cfg(feature = "text")]
+pub(crate) mod text_widgets;
+#[cfg(feature = "svg")]
+pub(crate) mod svg_widgets;
+
+
+
 
 /// The widget trait. All widgets are stored as Box<dyn Widget>.
 /// This trait can be used to create custom widgets, that can be implemented from scratch or use a combination of existing widgets.
@@ -21,5 +30,5 @@ pub trait Widget {
     /// It is needed to recompute the widgets rect while doing so: events are called one after another, and there is no guarantee
     /// that draw will be called between each event. As events can change widget layouts, it is needed to recompute the rect
     /// to ensure that the next event is handled correctly. 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> bool;
+    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse;
 }

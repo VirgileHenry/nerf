@@ -1,8 +1,11 @@
 use std::num::NonZeroU32;
 
-use crate::{geometry::size_requirements::WidgetSizeRequirement, drawing::canvas::Canvas, app::event::input_event::InputEvent};
-
-use super::Widget;
+use crate::{
+    geometry::size_requirements::WidgetSizeRequirement,
+    drawing::canvas::Canvas,
+    app::event::input_event::InputEvent,
+    Widget
+};
 
 /// Centers it's children in the available space.
 /// If the children takes all available space, this widget is useless and will give all space to children.

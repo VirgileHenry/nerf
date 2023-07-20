@@ -2,7 +2,11 @@ use std::num::NonZeroU32;
 
 use crate::{
     Widget,
-    geometry::{alignment::Alignment, size_requirements::WidgetSizeRequirement}, app::event::input_event::InputEvent
+    geometry::{
+        alignment::Alignment,
+        size_requirements::WidgetSizeRequirement
+    },
+    app::event::input_event::InputEvent,
 };
 
 

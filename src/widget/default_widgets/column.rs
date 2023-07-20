@@ -1,6 +1,10 @@
 use std::num::NonZeroU32;
 
-use crate::{Widget, geometry::size_requirements::WidgetSizeRequirement, app::event::input_event::InputEvent};
+use crate::{
+    Widget,
+    geometry::size_requirements::WidgetSizeRequirement,
+    app::event::input_event::InputEvent
+};
 
 
 /// The Column widget will take a const generic parameter number of children, and will display them vertically.

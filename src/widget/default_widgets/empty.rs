@@ -1,8 +1,10 @@
 use std::num::NonZeroU32;
 
-use crate::{geometry::size_requirements::WidgetSizeRequirement, drawing::canvas::Canvas};
-
-use super::Widget;
+use crate::{
+    geometry::size_requirements::WidgetSizeRequirement,
+    drawing::canvas::Canvas,
+    Widget
+};
 
 pub enum EmptyBehavior {
     /// The empty widget will take all the available space.

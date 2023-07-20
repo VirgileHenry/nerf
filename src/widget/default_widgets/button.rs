@@ -1,5 +1,8 @@
 
-use crate::{Widget, app::event::input_event::InputEvent};
+use crate::{
+    Widget,
+    app::event::input_event::InputEvent
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ButtonState {

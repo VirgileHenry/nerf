@@ -1,11 +1,11 @@
 use std::num::NonZeroU32;
 
 use crate::{
+    Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas, app::event::input_event::InputEvent,
+    drawing::canvas::Canvas,
+    app::event::input_event::InputEvent,
 };
-
-use super::Widget;
 
 enum SizedBoxConstraints {
     Width(NonZeroU32),

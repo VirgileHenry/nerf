@@ -9,7 +9,11 @@ edition = "2021"
 softbuffer = "0.3.0"
 winit = "0.28.6"
 
-
+[features]
+skia = []
+images = ["skia"]
+svg = ["skia"]
+text = ["skia"]
 
 [dev-dependencies]
 criterion = "0.3.0"

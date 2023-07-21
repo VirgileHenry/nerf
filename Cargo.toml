@@ -17,7 +17,7 @@ tiny-skia = { version = "0.11.1", optional = true }
 winit = "0.28.6"
 
 [features]
-default = ["skia"]
+default = ["skia", "text"]
 skia = ["dep:tiny-skia"]
 svg = ["skia"]
 text = ["dep:cosmic-text"]

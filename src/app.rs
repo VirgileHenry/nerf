@@ -4,8 +4,9 @@ use crate::{widget::Widget, drawing::canvas::Canvas};
 
 use self::event::{nerf_event::NerfEvent, input_event::InputEvent};
 
-pub(crate) mod event;
 pub(crate) mod app_context;
+pub(crate) mod assets;
+pub(crate) mod event;
 
 pub struct App {
     window: winit::window::Window,
@@ -15,10 +16,13 @@ pub struct App {
     surface: softbuffer::Surface,
     root: Box<dyn Widget>,
     request_redraw: bool,
+    assets: assets::Assets,
 }
 
 impl App {
     pub fn new(root: Box<dyn Widget>) -> Self {
+
+        let assets = assets::Assets::new();
 
         let event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
         let window = winit::window::WindowBuilder::new()
@@ -39,6 +43,7 @@ impl App {
             surface,
             root,
             request_redraw: true,
+            assets,
         }
     }
 
@@ -66,7 +71,11 @@ impl App {
                         },
                         _ => return, // unable to draw to size 0 canvas (+ useless)
                     };
-                    let mut canvas = Canvas::new(&mut self.surface, width, height);
+                    let mut canvas = Canvas::new(
+                        &mut self.assets,
+                        &mut self.surface,
+                        width, height
+                    );
 
                     self.root.draw(&mut canvas, rect);
 

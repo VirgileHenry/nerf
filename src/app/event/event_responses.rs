@@ -28,6 +28,14 @@ impl std::ops::BitOr for EventResponse {
     }
 }
 
+impl std::ops::Not for EventResponse {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        EventResponse(!self.0)
+    }
+}
+
 impl EventResponse {
     pub fn contains(self, other: EventResponse) -> bool {
         self.0 & other.0 > 0

@@ -1,8 +1,13 @@
-use crate::Color;
 
 
+use crate::{Color, app::assets::Assets};
+
+/// If the text features is enabled, implements text drawing operations.
+#[cfg(feature = "text")]
+pub(crate) mod text;
 
 pub struct Canvas<'a> {
+    assets: Option<&'a mut Assets>,
     buffer: softbuffer::Buffer<'a>,
     surface_width: u32,
     surface_height: u32,
@@ -11,12 +16,14 @@ pub struct Canvas<'a> {
 /// A canvas is a buffer that can be drawn on.
 impl<'a> Canvas<'a> {
     pub fn new(
+        assets: &'a mut Assets,
         surface: &'a mut softbuffer::Surface,
         surface_width: u32,
         surface_height: u32,
     ) -> Canvas<'a> {
         let buffer = surface.buffer_mut().unwrap();
         Canvas {
+            assets: Some(assets),
             buffer,
             surface_width,
             surface_height,
@@ -33,6 +40,7 @@ impl<'a> Canvas<'a> {
 
 #[cfg(feature = "skia")]
 impl<'a> Canvas<'a> {
+
     pub fn fill_rect(&mut self, rect: softbuffer::Rect, color: Color) {
         // todo : create a single skia pixmap with canvas creation, and reuse it.
         let slice = unsafe {
@@ -83,3 +91,4 @@ impl<'a> Canvas<'a> {
         }
     }
 }
+

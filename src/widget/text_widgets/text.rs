@@ -23,6 +23,10 @@ impl Text {
             style,
         })
     }
+
+    pub fn set_text(&mut self, text: String) {
+        self.text = text;
+    }
 }
 
 impl Widget for Text {

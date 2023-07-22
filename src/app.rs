@@ -126,6 +126,9 @@ impl App {
         if response.contains(event::event_responses::EventResponse::REDRAW_REQUEST) {
             self.request_redraw = true;
         }
+        if response.contains(event::event_responses::EventResponse::REQUEST_ANIMATION_FRAME) {
+            self.request_redraw = true;
+        }
     }
 
 

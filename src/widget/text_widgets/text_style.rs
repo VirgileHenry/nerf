@@ -6,7 +6,6 @@ use super::text::{text_overflow::TextOverflow, TextAlign};
 
 pub(crate) mod font_family;
 
-
 pub type FontWeight = cosmic_text::Weight;
 pub type FontCharSpacing = cosmic_text::Stretch;
 pub type FontStyle = cosmic_text::Style;
@@ -25,9 +24,65 @@ pub struct TextStyle {
 }
 
 impl TextStyle {
+    pub fn sized(self, size: f32) -> TextStyle {
+        TextStyle {
+            size,
+            ..self
+        }
+    }
+
+    pub fn interlined(self, additional_interline: f32) -> TextStyle {
+        TextStyle {
+            additional_interline,
+            ..self
+        }
+    }
+
+    pub fn with_font(self, family: FontFamily) -> TextStyle {
+        TextStyle {
+            family,
+            ..self
+        }
+    }
+
+    pub fn weighted(self, weight: FontWeight) -> TextStyle {
+        TextStyle {
+            weight,
+            ..self
+        }
+    }
+
+    pub fn spaced(self, spacing: FontCharSpacing) -> TextStyle {
+        TextStyle {
+            spacing,
+            ..self
+        }
+    }
+
+    pub fn styled(self, style: FontStyle) -> TextStyle {
+        TextStyle {
+            style,
+            ..self
+        }
+    }
+
     pub fn colored(self, color: Color) -> TextStyle {
         TextStyle {
             color,
+            ..self
+        }
+    }
+
+    pub fn with_overflow(self, overflow: TextOverflow) -> TextStyle {
+        TextStyle {
+            overflow,
+            ..self
+        }
+    }
+
+    pub fn aligned(self, align: TextAlign) -> TextStyle {
+        TextStyle {
+            align,
             ..self
         }
     }

@@ -47,5 +47,11 @@ pub use widget::{
 #[cfg(feature = "text")]
 pub use widget::text_widgets::{
     text::Text,
-    text_style::TextStyle,
+    text_style::{
+        TextStyle,
+        FontWeight,
+        FontCharSpacing,
+        FontStyle,
+        font_family::FontFamily,
+    },
 };

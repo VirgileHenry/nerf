@@ -4,7 +4,7 @@ use crate::{
     geometry::size_requirements::WidgetSizeRequirement,
     drawing::canvas::Canvas,
     app::event::{input_event::InputEvent, event_responses::EventResponse},
-    Widget
+    Widget, Rect
 };
 
 /// Centers it's children in the available space.
@@ -58,7 +58,7 @@ impl Center {
 }
 
 impl Widget for Center {
-    fn draw(&self, buffer: &mut Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, buffer: &mut Canvas, rect: Rect) {
         let rect = self.compute_child_rect(rect);
         self.child.draw(buffer, rect);
     }
@@ -67,7 +67,7 @@ impl Widget for Center {
         self.child.min_space_requirements()
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         let rect = self.compute_child_rect(rect);
         self.child.handle_event(event, rect)
     }

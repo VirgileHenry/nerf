@@ -1,7 +1,8 @@
 
 
-pub(crate) mod size_requirements;
-pub(crate) mod screen_side;
 pub(crate) mod alignment;
+pub(crate) mod rect;
+pub(crate) mod screen_side;
+pub(crate) mod size_requirements;
 
 

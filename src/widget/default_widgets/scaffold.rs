@@ -5,7 +5,7 @@ use crate::{
     geometry::{
         size_requirements::WidgetSizeRequirement,
         screen_side::ScreenSide
-    }, app::event::{input_event::InputEvent, event_responses::EventResponse}
+    }, app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
 };
 
 /// The Scaffold is a widget with an app bar and a child.
@@ -86,7 +86,7 @@ impl Scaffold {
 }
 
 impl Widget for Scaffold {
-    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         let ((appbar_width, appbar_x_offset), (child_width, child_x_offset)) = self.get_childs_width_and_offset(rect.width);
         let ((appbar_height, appbar_y_offset), (child_height, child_y_offset)) = self.get_childs_height_and_offset(rect.height);
         match (NonZeroU32::new(appbar_width), NonZeroU32::new(appbar_height)) {
@@ -130,7 +130,7 @@ impl Widget for Scaffold {
         }
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         // we can't or the function calls, as lazy eval may skip a event propagation.
         let ((appbar_width, appbar_x_offset), (child_width, child_x_offset)) = self.get_childs_width_and_offset(rect.width);
         let ((appbar_height, appbar_y_offset), (child_height, child_y_offset)) = self.get_childs_height_and_offset(rect.height);

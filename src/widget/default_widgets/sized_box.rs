@@ -4,7 +4,7 @@ use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
     drawing::canvas::Canvas,
-    app::event::{input_event::InputEvent, event_responses::EventResponse},
+    app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect,
 };
 
 enum SizedBoxConstraints {
@@ -98,7 +98,7 @@ impl SizedBox {
 }
 
 impl Widget for SizedBox {
-    fn draw(&self, buffer: &mut Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, buffer: &mut Canvas, rect: Rect) {
         let rect = softbuffer::Rect {
             x: rect.x,
             y: rect.y,
@@ -116,7 +116,7 @@ impl Widget for SizedBox {
         }
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         self.child.handle_event(event, rect)
     }
 }

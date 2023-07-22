@@ -4,7 +4,7 @@ use crate::{
     Widget,
     WidgetSizeRequirement,
     Canvas,
-    TextStyle
+    TextStyle, Rect
 };
 
 pub(crate) mod text_overflow;
@@ -30,7 +30,7 @@ impl Text {
 }
 
 impl Widget for Text {
-    fn draw(&self, canvas: &mut Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, canvas: &mut Canvas, rect: Rect) {
         canvas.draw_text(&self.text, rect, &self.style);
     }
 
@@ -41,7 +41,7 @@ impl Widget for Text {
         )
     }
 
-    fn handle_event(&mut self, _event: crate::app::event::input_event::InputEvent, _rect: softbuffer::Rect) -> crate::app::event::event_responses::EventResponse {
+    fn handle_event(&mut self, _event: crate::app::event::input_event::InputEvent, _rect: Rect) -> crate::app::event::event_responses::EventResponse {
         crate::app::event::event_responses::EventResponse::NONE
     }
 }

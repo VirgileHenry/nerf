@@ -19,12 +19,13 @@ pub use drawing::{
     color::Color,
 };
 pub use geometry::{
-    screen_side::ScreenSide,
     alignment::{
         VerticalAlignment,
         HorizontalAlignment,
         Alignment,
     },
+    rect::Rect,
+    screen_side::ScreenSide,
     size_requirements::WidgetSizeRequirement,
 };
 // default widget exports

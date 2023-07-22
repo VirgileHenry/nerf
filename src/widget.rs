@@ -1,6 +1,11 @@
 use crate::{
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas, app::event::{input_event::InputEvent, event_responses::EventResponse}
+    drawing::canvas::Canvas,
+    app::event::{
+        input_event::InputEvent,
+        event_responses::EventResponse
+    },
+    Rect
 };
 
 
@@ -30,5 +35,5 @@ pub trait Widget {
     /// It is needed to recompute the widgets rect while doing so: events are called one after another, and there is no guarantee
     /// that draw will be called between each event. As events can change widget layouts, it is needed to recompute the rect
     /// to ensure that the next event is handled correctly. 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse;
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse;
 }

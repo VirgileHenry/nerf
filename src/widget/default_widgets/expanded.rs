@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    app::event::{input_event::InputEvent, event_responses::EventResponse}
+    app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
 };
 
 
@@ -18,7 +18,7 @@ pub struct Expanded {
 
 
 impl Widget for Expanded {
-    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         self.child.draw(canvas, rect);
     }
 
@@ -29,7 +29,7 @@ impl Widget for Expanded {
         )
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         self.child.handle_event(event, rect)
     }
 }

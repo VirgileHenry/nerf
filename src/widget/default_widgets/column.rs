@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    app::event::{input_event::InputEvent, event_responses::EventResponse}
+    app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
 };
 
 
@@ -46,7 +46,7 @@ impl<const N: usize> Column<N> {
 }
 
 impl<const N: usize> Widget for Column<N> {
-    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         let mut height_requirements = [WidgetSizeRequirement::None; N];
         for (i, child) in self.children.iter().enumerate() {
             height_requirements[i] = child.min_space_requirements().1;
@@ -78,7 +78,7 @@ impl<const N: usize> Widget for Column<N> {
         )
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         let mut height_requirements = [WidgetSizeRequirement::None; N];
         for (i, child) in self.children.iter().enumerate() {
             height_requirements[i] = child.min_space_requirements().1;

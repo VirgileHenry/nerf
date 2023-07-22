@@ -1,7 +1,7 @@
 
 use crate::{
     Widget,
-    app::event::{input_event::InputEvent, event_responses::EventResponse}
+    app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,7 +28,7 @@ impl Button {
 }
 
 impl Widget for Button {
-    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         self.child.draw(canvas, rect);
     }
 
@@ -36,7 +36,7 @@ impl Widget for Button {
         self.child.min_space_requirements()
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         let own_response = match (event.clone(), self.state) {
             (InputEvent::CursorMoved { position }, ButtonState::Idle) => if position.is_in_rect(rect) {
                 self.state = ButtonState::Hovered;

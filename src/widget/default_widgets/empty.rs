@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use crate::{
     geometry::size_requirements::WidgetSizeRequirement,
     drawing::canvas::Canvas,
-    Widget, app::event::event_responses::EventResponse
+    Widget, app::event::event_responses::EventResponse, Rect
 };
 
 pub enum EmptyBehavior {
@@ -33,7 +33,7 @@ impl Empty {
 }
 
 impl Widget for Empty {
-    fn draw(&self, _buffer: &mut Canvas, _rect: softbuffer::Rect) {}
+    fn draw(&self, _buffer: &mut Canvas, _rect: Rect) {}
 
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement) {
         match self.behavior {
@@ -45,7 +45,7 @@ impl Widget for Empty {
         }
     }
 
-    fn handle_event(&mut self, _event: crate::app::event::input_event::InputEvent, _rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, _event: crate::app::event::input_event::InputEvent, _rect: Rect) -> EventResponse {
         EventResponse::NONE
     }
 }

@@ -6,7 +6,7 @@ use crate::{
         alignment::Alignment,
         size_requirements::WidgetSizeRequirement
     },
-    app::event::{input_event::InputEvent, event_responses::EventResponse},
+    app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect,
 };
 
 
@@ -61,7 +61,7 @@ impl Align {
 }
 
 impl Widget for Align {
-    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         let child_rect = self.compute_child_rect(rect);
         self.child.draw(canvas, child_rect);
     }
@@ -70,7 +70,7 @@ impl Widget for Align {
         self.child.min_space_requirements()
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         let child_rect = self.compute_child_rect(rect);
         self.child.handle_event(event, child_rect)
     }

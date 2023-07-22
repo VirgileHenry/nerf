@@ -1,7 +1,7 @@
 use crate::{
     Widget,
     geometry::size_requirements::WidgetSizeRequirement,
-    drawing::{color::Color, canvas::Canvas}, app::event::{input_event::InputEvent, event_responses::EventResponse}
+    drawing::{color::Color, canvas::Canvas}, app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
 };
 
 
@@ -26,7 +26,7 @@ impl Background {
 }
 
 impl Widget for Background {
-    fn draw(&self, canvas: &mut Canvas, rect: softbuffer::Rect) {
+    fn draw(&self, canvas: &mut Canvas, rect: Rect) {
         canvas.fill_rect(rect, self.color);
         self.child.draw(canvas, rect);
     }
@@ -35,7 +35,7 @@ impl Widget for Background {
         self.child.min_space_requirements()       
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventResponse {
+    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
         self.child.handle_event(event, rect)
     }
 }

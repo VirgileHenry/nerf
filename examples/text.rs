@@ -7,8 +7,9 @@ fn main() {
         Align::new(
             Alignment::CENTER,
             Text::new(
-                "Hello,\nRust! 🦀".to_string(),
-                TextStyle::default().colored(Color::WHITE),
+                "HELLO,\nRust! 🦀".to_string(),
+                TextStyle::default()
+                    .colored(Color::WHITE),
             ),
         )
     );

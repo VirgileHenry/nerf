@@ -1,6 +1,6 @@
 
 
-use nerf::{App, Background, Color, SizedBox, Align, Alignment, Button, Text, Widget, EventResponse, InputEvent, WidgetSizeRequirement, TextStyle};
+use nerf::{App, Background, Color, SizedBox, Align, Alignment, Button, Text, Widget, EventResponse, InputEvent, WidgetSizeRequirement, TextStyle, FontStyle, FontWeight};
 
 
 
@@ -15,8 +15,6 @@ fn main() {
     app.run()
 }
 
-
-
 struct SwitchingButton {
     button1: Box<Button>,
     button2: Box<Button>,
@@ -30,19 +28,33 @@ impl SwitchingButton {
             button1: Button::new(
                 SizedBox::new(
                     250, 80,
-                    Background::new(Color::rgb(200, 200, 255), Text::new("Luck Fogan\nLuck Fogan".to_string(), TextStyle::default()))
+                    Background::new(Color::rgb(200, 200, 255), Text::new(
+                        "Luck Fogan".to_string(),
+                        TextStyle::default()
+                            .sized(30.0)
+                            .styled(FontStyle::Italic)
+                    ))
                 )
             ),
             button2: Button::new(
                 SizedBox::new(
                     250, 80,
-                    Background::new(Color::rgb(200, 255, 200), Text::new("Juck Forge".to_string(), TextStyle::default()))
+                    Background::new(Color::rgb(200, 255, 200), Text::new(
+                        "Juck Forge".to_string(),
+                        TextStyle::default()
+                            .sized(30.0)
+                            .weighted(FontWeight::BOLD)
+                    ))
                 )
             ),
             button3: Button::new(
                 SizedBox::new(
                     250, 80,
-                    Background::new(Color::rgb(255, 200, 200), Text::new("Nuck Fils".to_string(), TextStyle::default()))
+                    Background::new(Color::rgb(255, 200, 200), Text::new(
+                        "Nuck Fils".to_string(),
+                        TextStyle::default()
+                            .sized(30.0)
+                    ))
                 )
             ),
             state: 0,

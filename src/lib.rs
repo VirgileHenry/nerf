@@ -42,6 +42,7 @@ pub use widget::{
         row::Row,
         sized_box::SizedBox,
         scaffold::Scaffold,
+        stack::Stack,
     },
 };
 // conditional exports

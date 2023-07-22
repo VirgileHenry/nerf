@@ -25,7 +25,7 @@ pub(crate) mod svg_widgets;
 pub trait Widget {
     /// Draw the widget on the canvas. The given rect is the area the widget should draw in, computed by its parent
     /// with it's size requirements. 
-    fn draw(&self, canvas: &mut Canvas, rect: softbuffer::Rect);
+    fn draw(&self, canvas: &mut Canvas, rect: Rect);
     /// Get the size requirements of this widget.
     /// If the widgets requests sized outside of the constraints, they will be given smaller sizes to be drawn in.
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement);

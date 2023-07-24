@@ -44,6 +44,10 @@ impl std::ops::Not for EventResponse {
 }
 
 impl EventResponse {
+    pub fn new(value: u64) -> EventResponse {
+        EventResponse(value)
+    }
+
     pub fn contains(self, other: EventResponse) -> bool {
         self.0 & other.0 > 0
     }

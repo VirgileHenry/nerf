@@ -4,11 +4,11 @@ Nerf is (yet another) rust GUI lib. It is heavily inspired by Flutter, and is de
 
 It was created after seing how huge and complex other GUI libs were. The simple counter example with Iced is 8MB, and the whole repo is 60k lines of code. When I tried it out, the compile time was huge. The counter Nerf example is 5K lines of code (when I write this readme, this will increase in the future) and the executable is 2MB.
 
-I wanted something simple, and straightforward. A lib that anyone could dive into, and understand how it works.
+I wanted something simple and straightforward. A lib that anyone could dive into, and understand how it works.
 
 ## Features
 
-For now, Nerf is in early development. Therefore, only a few types of widgets are currently supported.
+For now, Nerf is in early development. Therefore, only a few types of widgets are currently supported. The main features are:
 
 - Widget tree system
 - Basic widget rendering 
@@ -51,7 +51,7 @@ min_space_requirements:
 ```rust
 fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement);
 ```
-This allows to have information on how widgets wished to be layout. This will allow the app to give them the required space, if available. It is important to note that this can not always be respected, and widgets should be able to handle smaller sizes. We can't stop a app_user to making a window smaller than the minimum size of a widget.
+This allows to have information on how widgets wished to be layout. This will allow the app to give them the required space, if available. It is important to note that this can not always be respected, and widgets should be able to handle smaller sizes. We can't stop the app user to make the window smaller than the minimum size of our widgets.
 
 handle_event:
 ```rust
@@ -60,7 +60,7 @@ fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventRe
 The handle event function is called whenever an event is received. It should be recursively called on all children.
 When a widget uses that event, they must notifiy the parent by returning a event response flags, such as the request redraw for example.
 
-With Nerf, the idea is that widets implement their logic and own their data. Any desired behaviour is made by creating a widget, and adding it to the widget tree. The widget tree is then passed to the application, which will handle the rendering and events. This follows the rust philosophy of ownership, and non-representable states. For example, a connection page widget does not have data for a user : therefore, any null data is not representable. The connected page however does have user data, and can use it.
+With Nerf, the idea is that widets implement their logic and own their data. Any desired behaviour is made by creating a widget, and adding it to the widget tree. The widget tree is then passed to the application, which will handle the rendering and events. For instance, a connection page will allow the user to connect, while the connected page wille store the user info. Therefore, if an app need data anytime, the best place to store it is in a custom root widget.
 
 ### Example
 
@@ -75,7 +75,7 @@ struct Counter {
 }
 ```
 
-While we could implement manually the drawing, event handling of our counter, Nerf provides basic widgets that can be used. Our counter will therfore have two childs, a text widget to display the count, and a button to increment the count.
+While we could implement manually the drawing, event handling of our counter, Nerf provides basic widgets that can be used. Our counter will therefore have two childs, a text widget to display the count, and a button to increment the count.
 
 ```rust
 struct Counter {
@@ -88,7 +88,7 @@ struct Counter {
 }
 ```
 
-Here, the button is a dyn widget, because we don't care a lot about it. We kept the text strong type to change it's value later.
+Here, the button is a dyn widget, because we don't care a lot about it. We kept the text's strong type to change it's value later.
 
 Now, let's implement the widget trait for our counter.
 
@@ -98,8 +98,8 @@ impl Widget for Counter {
 }
 ```
 
-Let's start with the draw function. All we need to draw is the text. However, we'll add a background color to make it more visible.
-As we keep a reference to the text widget, we can't have it be a child of our background: widgets have a unique owner. We will draw our background behind the button, which is a widget that does not get drawn, and only have a behaviour. Therefore, we will draw the button and the text. 
+We'll start with the draw function. All we need to draw is the text. However, we'll add a background color to make it more visible.
+As we kept a reference to the text widget, we can't have it be a child of our background: widgets have a unique owner, and the text is either a child of our counter or a child of a background. We will draw our background behind the button, which is a widget that does not get drawn, and only have a behaviour. Therefore, we will draw the button and the text. 
 
 ```rust
 fn draw(&self, canvas: &mut Canvas, rect: softbuffer::Rect) {
@@ -119,7 +119,7 @@ fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequiremen
 }
 ```
 
-Let's specify what space requirements we want. We could use the space requirements of our children, but here let's just say we want a fixed size. when drawn, the app will do it's best to provide us with the requested size.
+Let's specify what space requirements we want. We could use the space requirements of our children, but here let's just say we want a fixed size. when drawn, the app will give all the screen space to the root, and widgets will distribute that space to their children depending on their requirements and behaviour. For example, a sized box (or our counter button) request a fixed size, so when we will put this in a center widget, the center widget will receive the screen size, compare it with our own size, and give us the rect accordingly.
 
 Finally, let's handle the events. We want to handle the button click, and increment the counter.
 
@@ -139,7 +139,7 @@ fn handle_event(&mut self, event: InputEvent, rect: softbuffer::Rect) -> EventRe
 }
 ```
 
-If the button is pressed, it will return a callback flag. If we see this flag, we increment the counter and update the text. It is then important to return a draw request repsonse ourselves, to tell the app that we need to be redrawn. Here, we could simply return request redraw, but in more complex architectures, we might not now what events are thrown through our widgets. Also, it is worth noticing we removed the callback flag. This is left to the user, but here as we consumed the event, I found it better to keep it to this widget.
+If the button is pressed, it will return a callback flag. If we see this flag, we increment the counter and update the text. It is then important to return a draw request repsonse ourselves, to tell the app that we need to be redrawn. Here, we could simply return request redraw, but in more complex architectures, we might not now what events are thrown through our widgets. Also, it is worth noticing we removed the callback flag. This is left to the implementation type, but here as we consumed the event, I found it better to keep the information that our button triggered to ourselves.
 
 Finally, let's implement a constructor for our counter.
 
@@ -163,7 +163,7 @@ pub fn new() -> Box<Counter> {
 }
 ```
 
-Here, simply create a new counter with an initial state, assign the button and a text. You will notice the button is behind a background. This is why I kept it under a dyn widget: it is not important to know what it is, as we won't interact with it. The events will be redirected from the background to the button, and the button will throw a callback when pressed that we will also receive through the background. You could think of this as a "background button". But in Nerf, widgets won't assume any behaviour, and will only be used for their sole purpose. therfore, a  button will only be used to throw callbacks, and a background will only be used to draw a background. If we want to have a background button, we will create a button, and add a background to it, as demonstrated here.
+Here, simply create a new counter with an initial state, assign the button and a text. You will notice the button is behind a background. This is why I kept it under a dyn widget: it is not important to know what it is, as we won't interact with it. The events will be redirected from the background to the button, and the button will throw a callback when pressed that we will also receive through the background. You could think of this as a "background button". In Nerf, widgets won't assume any behaviour, and will only be used for their sole purpose. therfore, a  button will only be used to throw callbacks, and a background will only be used to draw a background. If we want to have a background button, we will create a button, and add a background to it, as demonstrated here.
 
 To avoid infinite size structs, most widgets are held in boxes in Nerf. It is however possible not to: our counter could have a straight text widget. But here, the app will expect a struct for the root, so our constructor returns a box.
 
@@ -184,9 +184,3 @@ fn main() {
 ```
 
 Here, simply create an app, put the counter as the root, and start it. You can see I added a center for convenience.
-
-### Going further
-
-As shown, my main idea behind Nerf is that widgets own their data. As this is in early development, this is still experimental and might be too limiting to be practical. However, I think this is a good way to go, and I will try to make it work.
-
-If you want to try it out and encounter any issues, or have any questions / remarks, please let me know !

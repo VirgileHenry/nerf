@@ -1,4 +1,5 @@
-use nerf::prelude::*;
+use nerf::*;
+
 
 fn main() {
     let app = App::new(

@@ -1,6 +1,4 @@
-use nerf::{App, Background, Empty, Color, Column, SizedBox};
-
-
+use nerf::prelude::*;
 
 fn main() {
     let app = App::new(

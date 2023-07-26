@@ -1,5 +1,5 @@
 use std::num::NonZeroU32;
-use nerf::prelude::*;
+use nerf::*;
 
 fn main() {
     // Create a new app, specifying the root widget.

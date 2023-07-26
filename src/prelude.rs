@@ -1,11 +1,5 @@
-pub(crate) mod app;
-pub(crate) mod drawing;
-pub(crate) mod geometry;
-pub(crate) mod widget;
-pub mod prelude;
-
 // default app exports
-pub use app::{
+pub use crate::app::{
     App,
     app_context::AppContext,
     event::{
@@ -16,11 +10,11 @@ pub use app::{
         event_responses::EventResponse,
     }
 };
-pub use drawing::{
+pub use crate::drawing::{
     canvas::Canvas,
     color::Color,
 };
-pub use geometry::{
+pub use crate::geometry::{
     alignment::{
         VerticalAlignment,
         HorizontalAlignment,
@@ -34,7 +28,7 @@ pub use geometry::{
 // re-export winit
 pub use winit;
 // default widget exports
-pub use widget::{
+pub use crate::widget::{
     Widget,
     default_widgets::{
         align::Align,
@@ -52,7 +46,7 @@ pub use widget::{
 };
 // conditional exports
 #[cfg(feature = "text")]
-pub use widget::text_widgets::{
+pub use crate::widget::text_widgets::{
     text::Text,
     text_style::{
         TextStyle,
@@ -63,6 +57,4 @@ pub use widget::text_widgets::{
     },
 };
 #[cfg(feature = "skia")]
-pub use widget::skia_widgets::{
-    decorated_background::DecoratedBackground,
-};
+pub use crate::widget::skia_widgets::decorated_background::DecoratedBackground;

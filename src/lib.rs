@@ -4,18 +4,13 @@ pub(crate) mod app;
 pub(crate) mod drawing;
 pub(crate) mod geometry;
 pub(crate) mod widget;
+pub(crate) mod utils;
 
 // default app exports
 pub use app::{
-    App,
+    run_app,
+    event::AppEvent,
     app_context::AppContext,
-    event::{
-        input_event::{
-            InputEvent,
-            mouse_position::MousePosition,
-        },
-        event_responses::EventResponse,
-    }
 };
 pub use drawing::{
     canvas::Canvas,
@@ -32,6 +27,7 @@ pub use geometry::{
     screen_side::ScreenSide,
     size_requirements::WidgetSizeRequirement,
 };
+pub use utils::nonable::Nonable;
 // re-export winit
 pub use winit;
 // default widget exports
@@ -42,13 +38,10 @@ pub use widget::{
         background::Background,
         button::Button,
         center::Center,
-        column::Column,
         empty::Empty,
         padder::{Padder, PaddType},
-        row::Row,
         sized_box::SizedBox,
         scaffold::Scaffold,
-        stack::Stack,
     },
 };
 // conditional exports
@@ -62,8 +55,4 @@ pub use widget::text_widgets::{
         FontStyle,
         font_family::FontFamily,
     },
-};
-#[cfg(feature = "skia")]
-pub use widget::skia_widgets::{
-    decorated_background::DecoratedBackground,
 };

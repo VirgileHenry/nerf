@@ -1,19 +1,15 @@
-use nerf::{App, Padder, Background, Empty, Color, PaddType};
+use nerf::*;
 
 
 
 fn main() {
-    let app = App::new(
-        Padder::new(
-            PaddType::ALL,
-            20,
-            Background::new(
-                Color::rgb(0, 255, 0),
-                Empty::expand(),
-            ),
-        )
-    );
-
-    app.run()
+    run_app::<(), _>(Padder::new(
+        PaddType::ALL,
+        20,
+        Background::new(
+            Color::rgb(220, 255, 230),
+            Empty::expand(),
+        ),
+    ), None).unwrap();
 }
 

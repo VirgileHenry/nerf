@@ -93,7 +93,7 @@ Here, the button is a dyn widget, because we don't care a lot about it. We kept 
 Now, let's implement the widget trait for our counter.
 
 ```rust
-impl Widget for Counter {
+impl Widget<UserEvent> for Counter {
     [...]
 }
 ```

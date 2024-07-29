@@ -1,18 +1,14 @@
-use nerf::{App, Align, Alignment, Text, TextStyle, Color};
+use nerf::*;
 
 
 
 fn main() {
-    let app = App::new(
-        Align::new(
-            Alignment::CENTER,
-            Text::new(
-                "HELLO,\nRust! 🦀".to_string(),
-                TextStyle::default()
-                    .colored(Color::WHITE),
-            ),
-        )
-    );
-
-    app.run()
+    run_app(Align::new(
+        Alignment::CENTER,
+        Text::<()>::new(
+            "HELLO,\nRust! 🦀".to_string(),
+            TextStyle::default()
+                .colored(Color::WHITE),
+        ),
+    ), None).unwrap();
 }

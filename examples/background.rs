@@ -1,15 +1,11 @@
-use nerf::{App, Background, Empty, Color};
+use nerf::*;
 
 
 
 fn main() {
-    let app = App::new(
-        Background::new(
-            Color::rgb(0, 255, 0),
-            Empty::expand(),
-        ),
-    );
-
-    app.run()
+    run_app::<(), _>(Background::new(
+        Color::rgb(123, 175, 150),
+        Empty::expand(),
+    ), None).unwrap();
 }
 

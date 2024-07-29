@@ -1,30 +1,31 @@
 use std::num::NonZeroU32;
 
 use crate::{
-    Widget,
-    geometry::{
-        size_requirements::WidgetSizeRequirement,
-        screen_side::ScreenSide
-    }, app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
+    app::event::AppEvent, geometry::{
+        screen_side::ScreenSide, size_requirements::WidgetSizeRequirement
+    }, Rect, Widget
 };
+use crate::utils::nonable::Nonable;
 
 /// The Scaffold is a widget with an app bar and a child.
 /// The app bar can be on the top, bottom, left or right of the child.
 /// There are no assumptions about the app bar size, and if both appbar and child widget have flex requirements,
 /// they will be given equal amounts of space. If you want to fix the size of the appbar, you can wrap it in a SizedBox.
-pub struct Scaffold {
+pub struct Scaffold<UserEvent, AppBar: Widget<UserEvent>, Child: Widget<UserEvent>> {
+    _m: core::marker::PhantomData<UserEvent>,
     appbar_side: ScreenSide,
-    appbar: Box<dyn Widget>,
-    child: Box<dyn Widget>,
+    appbar: AppBar,
+    child: Child,
 }
 
-impl Scaffold {
-    pub fn new(appbar_side: ScreenSide, appbar: Box<dyn Widget>, child: Box<dyn Widget>) -> Box<Scaffold> {
-        Box::new(Scaffold {
+impl<UserEvent, AppBar: Widget<UserEvent>, Child: Widget<UserEvent>> Scaffold<UserEvent, AppBar, Child> {
+    pub fn new(appbar_side: ScreenSide, appbar: AppBar, child: Child) -> Self {
+        Scaffold {
+            _m: core::marker::PhantomData,
             appbar_side,
             appbar,
             child,
-        })
+        }
     }
 
     /// returns the width and offset of the appbar, and the width and offset of the child.
@@ -85,7 +86,8 @@ impl Scaffold {
 
 }
 
-impl Widget for Scaffold {
+impl<UserEvent, AppBar: Widget<UserEvent>, Child: Widget<UserEvent>> Widget<UserEvent> for Scaffold<UserEvent, AppBar, Child> {
+    type EventResponse = (AppBar::EventResponse, Child::EventResponse);
     fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         let ((appbar_width, appbar_x_offset), (child_width, child_x_offset)) = self.get_childs_width_and_offset(rect.width);
         let ((appbar_height, appbar_y_offset), (child_height, child_y_offset)) = self.get_childs_height_and_offset(rect.height);
@@ -96,7 +98,10 @@ impl Widget for Scaffold {
                 width,
                 height,
             }),
-            _ => {}, // either width or height is 0, so we don't draw the appbar
+            _ => {
+                #[cfg(debug_assertions)]
+                println!("Unable to draw scaffold appbar: no space!")
+            },
         };
         match (NonZeroU32::new(child_width), NonZeroU32::new(child_height)) {
             (Some(width), Some(height)) => self.child.draw(canvas, softbuffer::Rect {
@@ -105,23 +110,24 @@ impl Widget for Scaffold {
                 width,
                 height,
             }),
-            _ => {}, // either width or height is 0, so we don't draw the child
+            _ => {
+                #[cfg(debug_assertions)]
+                println!("Unable to draw scaffold child: no space!")
+            },
         };
     }
 
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement) {
+        let (appbar_width_req, appbar_height_req) = self.appbar.min_space_requirements();
+        let (child_width_req, child_height_req) = self.child.min_space_requirements();
         match self.appbar_side {
             ScreenSide::Top | ScreenSide::Bottom => {
-                let (appbar_width_req, appbar_height_req) = self.appbar.min_space_requirements();
-                let (child_width_req, child_height_req) = self.child.min_space_requirements();
                 (
                     appbar_width_req | child_width_req,
                     appbar_height_req & child_height_req,
                 )
             },
             ScreenSide::Left | ScreenSide::Right => {
-                let (appbar_width_req, appbar_height_req) = self.appbar.min_space_requirements();
-                let (child_width_req, child_height_req) = self.child.min_space_requirements();
                 (
                     appbar_width_req & child_width_req,
                     appbar_height_req | child_height_req,
@@ -130,28 +136,28 @@ impl Widget for Scaffold {
         }
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
+    fn handle_event(&mut self, event: &AppEvent<UserEvent>, rect: Rect) -> Self::EventResponse {
         // we can't or the function calls, as lazy eval may skip a event propagation.
         let ((appbar_width, appbar_x_offset), (child_width, child_x_offset)) = self.get_childs_width_and_offset(rect.width);
         let ((appbar_height, appbar_y_offset), (child_height, child_y_offset)) = self.get_childs_height_and_offset(rect.height);
-        let result1 = match (NonZeroU32::new(appbar_width), NonZeroU32::new(appbar_height)) {
-            (Some(width), Some(height)) => self.appbar.handle_event(event.clone(), softbuffer::Rect {
+        let app_bar_reponse = match (NonZeroU32::new(appbar_width), NonZeroU32::new(appbar_height)) {
+            (Some(width), Some(height)) => self.appbar.handle_event(event, softbuffer::Rect {
                 x: rect.x + appbar_x_offset,
                 y: rect.y + appbar_y_offset,
                 width,
                 height,
             }),
-            _ => EventResponse::NONE, // either width or height is 0, so we don't draw the appbar
+            _ => AppBar::EventResponse::none(), // either width or height is 0, so we don't draw the appbar
         };
-        let result2 = match (NonZeroU32::new(child_width), NonZeroU32::new(child_height)) {
-            (Some(width), Some(height)) => self.child.handle_event(event.clone(), softbuffer::Rect {
+        let child_response = match (NonZeroU32::new(child_width), NonZeroU32::new(child_height)) {
+            (Some(width), Some(height)) => self.child.handle_event(event, softbuffer::Rect {
                 x: rect.x + child_x_offset,
                 y: rect.y + child_y_offset,
                 width,
                 height,
             }),
-            _ => EventResponse::NONE, // either width or height is 0, so we don't draw the child
+            _ => Child::EventResponse::none(), // either width or height is 0, so we don't draw the child
         };
-        result1 | result2
+        (app_bar_reponse, child_response)
     }
 }

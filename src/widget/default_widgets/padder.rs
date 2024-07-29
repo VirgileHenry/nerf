@@ -1,10 +1,9 @@
 use std::num::NonZeroU32;
 
 use crate::{
-    Widget,
-    geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas, app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
+    app::event::AppEvent, geometry::size_requirements::WidgetSizeRequirement, Canvas, Rect, Widget,
 };
+use crate::utils::nonable::Nonable;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct PaddType(u8);
@@ -33,6 +32,13 @@ impl std::ops::BitOr for PaddType {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         PaddType(self.0 | rhs.0)
+    }
+}
+
+impl std::ops::Not for PaddType {
+    type Output = Self;
+    fn not(self) -> Self::Output {
+        PaddType(!self.0)
     }
 }
 
@@ -76,21 +82,24 @@ impl Padding {
     }
 }
 
-pub struct Padder {
-    child: Box<dyn Widget>,
+pub struct Padder<UserEvent, Child: Widget<UserEvent>> {
+    _m: core::marker::PhantomData<UserEvent>,
+    child: Child,
     padding: Padding,
 }
 
-impl Padder {
-    pub fn new(padd_type: PaddType, padd_amount: u32, child: Box<dyn Widget>) -> Box<Padder> {
-        Box::new(Padder {
+// todo : this whole section is terrible and needs rewrite
+impl<UserEvent, Child: Widget<UserEvent>> Padder<UserEvent, Child> {
+    pub fn new(padd_type: PaddType, padd_amount: u32, child: Child) -> Self {
+        Padder {
+            _m: core::marker::PhantomData,
             child,
             padding: Padding { padd_type, padd_amount },
-        })
+        }
     }
 
     fn get_child_remaining_width(&self, available_space: NonZeroU32) -> u32 {
-        available_space.get().max(self.padding.horizontal()) - self.padding.horizontal()
+        available_space.get().checked_sub(self.padding.horizontal()).unwrap_or(0)
     }
 
     fn get_child_remaining_height(&self, available_space: NonZeroU32) -> u32 {
@@ -141,7 +150,8 @@ impl Padder {
     }
 }
 
-impl Widget for Padder {
+impl<UserEvent, Child: Widget<UserEvent>> Widget<UserEvent> for Padder<UserEvent, Child> {
+    type EventResponse = Child::EventResponse;
     fn draw(&self, buffer: &mut Canvas, rect: Rect) {
         match self.compute_child_rect(rect) {
             Some(rect) => self.child.draw(buffer, rect),
@@ -151,35 +161,16 @@ impl Widget for Padder {
 
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement) {
         let (child_width_requirement, child_height_requirement) = self.child.min_space_requirements();
-        let width_requirement = match child_width_requirement {
-            WidgetSizeRequirement::Fixed(size) => WidgetSizeRequirement::Fixed(size.saturating_add(self.padding.horizontal())),
-            WidgetSizeRequirement::Min(size) => WidgetSizeRequirement::Min(size.saturating_add(self.padding.horizontal())),
-            WidgetSizeRequirement::Max(size) => WidgetSizeRequirement::Max(size.saturating_add(self.padding.horizontal())),
-            WidgetSizeRequirement::MinMax(min, max) => WidgetSizeRequirement::MinMax(min.saturating_add(self.padding.horizontal()), max.saturating_add(self.padding.horizontal())),
-            WidgetSizeRequirement::Flex(flex) => WidgetSizeRequirement::Flex(flex),
-            WidgetSizeRequirement::None => match NonZeroU32::new(self.padding.horizontal()) {
-                Some(size) => WidgetSizeRequirement::Min(size),
-                None => WidgetSizeRequirement::None,
-            }
-        };
-        let height_requirement = match child_height_requirement {
-            WidgetSizeRequirement::Fixed(size) => WidgetSizeRequirement::Fixed(size.saturating_add(self.padding.vertical())),
-            WidgetSizeRequirement::Min(size) => WidgetSizeRequirement::Min(size.saturating_add(self.padding.vertical())),
-            WidgetSizeRequirement::Max(size) => WidgetSizeRequirement::Max(size.saturating_add(self.padding.vertical())),
-            WidgetSizeRequirement::MinMax(min, max) => WidgetSizeRequirement::MinMax(min.saturating_add(self.padding.vertical()), max.saturating_add(self.padding.vertical())),
-            WidgetSizeRequirement::Flex(flex) => WidgetSizeRequirement::Flex(flex),
-            WidgetSizeRequirement::None => match NonZeroU32::new(self.padding.vertical()) {
-                Some(size) => WidgetSizeRequirement::Min(size),
-                None => WidgetSizeRequirement::None,
-            }
-        };
-        (width_requirement, height_requirement)
+        (
+            child_width_requirement + self.padding.horizontal(),
+            child_height_requirement + self.padding.vertical(),
+        )
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
+    fn handle_event(&mut self, event: &AppEvent<UserEvent>, rect: Rect) -> Self::EventResponse {
         match self.compute_child_rect(rect) {
             Some(rect) => self.child.handle_event(event, rect),
-            None => EventResponse::NONE,
+            None => Self::EventResponse::none(),
         }
     }
 }

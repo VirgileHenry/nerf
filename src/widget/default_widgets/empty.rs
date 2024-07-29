@@ -1,9 +1,7 @@
 use std::num::NonZeroU32;
 
 use crate::{
-    geometry::size_requirements::WidgetSizeRequirement,
-    drawing::canvas::Canvas,
-    Widget, app::event::event_responses::EventResponse, Rect
+    app::event::AppEvent, drawing::canvas::Canvas, geometry::size_requirements::WidgetSizeRequirement, Rect, Widget
 };
 
 pub enum EmptyBehavior {
@@ -19,33 +17,33 @@ pub struct Empty {
 }
 
 impl Empty {
-    pub fn shrink() -> Box<Empty> {
-        Box::new(Empty {
+    pub fn shrink() -> Empty {
+        Empty {
             behavior: EmptyBehavior::Shrink,
-        })
+        }
     }
 
-    pub fn expand() -> Box<Empty> {
-        Box::new(Empty {
+    pub fn expand() -> Empty {
+        Empty {
             behavior: EmptyBehavior::Expand,
-        })
+        }
     }
 }
 
-impl Widget for Empty {
+impl<UserEvent> Widget<UserEvent> for Empty {
+    type EventResponse = ();
+
     fn draw(&self, _buffer: &mut Canvas, _rect: Rect) {}
 
     fn min_space_requirements(&self) -> (WidgetSizeRequirement, WidgetSizeRequirement) {
         match self.behavior {
             EmptyBehavior::Shrink => (WidgetSizeRequirement::None, WidgetSizeRequirement::None),
             EmptyBehavior::Expand => (
-                WidgetSizeRequirement::Flex(unsafe { NonZeroU32::new_unchecked(1) }),
-                WidgetSizeRequirement::Flex(unsafe { NonZeroU32::new_unchecked(1) })
+                WidgetSizeRequirement::Flex { flex: unsafe { NonZeroU32::new_unchecked(1) } },
+                WidgetSizeRequirement::Flex { flex: unsafe { NonZeroU32::new_unchecked(1) } },
             ),
         }
     }
 
-    fn handle_event(&mut self, _event: crate::app::event::input_event::InputEvent, _rect: Rect) -> EventResponse {
-        EventResponse::NONE
-    }
+    fn handle_event(&mut self, _: &AppEvent<UserEvent>, _: Rect) -> Self::EventResponse { }
 }

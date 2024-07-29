@@ -27,7 +27,12 @@ impl<'a> Canvas<'a> {
         buffer.set_wrap(style.overflow.into());
 
         // Add some text!
-        buffer.set_text(text, style.into(), cosmic_text::Shaping::Advanced);
+        let attrs = cosmic_text::Attrs::new();
+        buffer.set_text(text, attrs, cosmic_text::Shaping::Basic);
+
+        /*
+        
+         */
 
         // Perform shaping as desired
         buffer.shape_until_scroll(); // todo what is this for ? works fine without
@@ -37,8 +42,8 @@ impl<'a> Canvas<'a> {
         buffer.draw(swash_cache, style.color.into(), |x, y, w, h, color| {
             match (NonZeroU32::new(w), NonZeroU32::new(h), u32::try_from(x), u32::try_from(y)) {
                 (Some(width), Some(height), Ok(x), Ok(y)) => {
-                    let rect = softbuffer::Rect { x: rect.x + x, y: rect.y + y, width, height };
-                    self.fill_rect(rect, color.into());
+                    let rect_to_draw = softbuffer::Rect { x: rect.x + x, y: rect.y + y, width, height };
+                    self.fill_rect(rect_to_draw, color.into());
                 },
                 _ => {},
             }

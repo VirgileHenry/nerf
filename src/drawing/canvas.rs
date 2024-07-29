@@ -8,7 +8,7 @@ pub(crate) mod text;
 
 pub struct Canvas<'a> {
     assets: Option<&'a mut Assets>,
-    buffer: softbuffer::Buffer<'a>,
+    buffer: softbuffer::Buffer<'a, std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
     surface_width: u32,
     surface_height: u32,
 }
@@ -17,7 +17,7 @@ pub struct Canvas<'a> {
 impl<'a> Canvas<'a> {
     pub fn new(
         assets: &'a mut Assets,
-        surface: &'a mut softbuffer::Surface,
+        surface: &'a mut softbuffer::Surface<std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>>,
         surface_width: u32,
         surface_height: u32,
     ) -> Canvas<'a> {
@@ -30,8 +30,12 @@ impl<'a> Canvas<'a> {
         }
     }
 
-    pub fn buffer(self) -> softbuffer::Buffer<'a> {
+    pub fn buffer(self) -> softbuffer::Buffer<'a, std::rc::Rc<winit::window::Window>, std::rc::Rc<winit::window::Window>> {
         self.buffer
+    }
+
+    pub fn present(self) -> Result<(), softbuffer::SoftBufferError> {
+        self.buffer.present()
     }
 
 
@@ -122,6 +126,7 @@ impl<'a> Canvas<'a> {
 impl<'a> Canvas<'a> {
 
     pub fn draw_pixel(&mut self, x: u32, y: u32, color: u32){
+        // FIXME: broken because alpha not taken into consideration !
         self.buffer[(y * self.surface_width + x) as usize] = color;
     }
 

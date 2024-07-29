@@ -8,22 +8,37 @@ use std::num::NonZeroU32;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WidgetSizeRequirement {
     /// The widget request a fixed size.
-    Fixed(NonZeroU32),
+    Fixed {
+        size: NonZeroU32,
+    },
     /// The widget request a minimum size, but can be expanded.
     /// This requirement is a soft requirement, and can be ignored.
     /// However, in debug mode, size overflow will be checked.
-    Min(NonZeroU32),
+    Min {
+        min: NonZeroU32,
+        flex: NonZeroU32,
+    },
     /// The widget request a maximum size, but can be reduced.
-    Max(NonZeroU32),
+    Max {
+        max: NonZeroU32,
+        flex: NonZeroU32,
+    },
     /// The widget request a minimum and a maximum size.
     /// The min requirement is a soft requirement, and can be ignored.
     /// However, in debug mode, size overflow will be checked.
-    MinMax(NonZeroU32, NonZeroU32),
+    MinMax {
+        min: NonZeroU32,
+        max: NonZeroU32,
+        flex: NonZeroU32,
+    },
     /// The widget have no size constraints, and will fill up all the available space.
     /// The given value is the flex value, and tells how to distribute the remaining space.
-    Flex(NonZeroU32),
+    Flex {
+        flex: NonZeroU32,
+    },
     /// The widget have no size constraints.
     /// In most use cases, this will tell that there is no widget.
+    /// This is the same as a fixed size of 0, or a flex of 0.
     None,
 }
 
@@ -43,33 +58,65 @@ impl std::ops::BitOr for WidgetSizeRequirement {
     /// v
     fn bitor(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (WidgetSizeRequirement::None, other) |
+            // None 
+            (WidgetSizeRequirement::None, WidgetSizeRequirement::None) => WidgetSizeRequirement::None,
             (other, WidgetSizeRequirement::None) => other,
-            (WidgetSizeRequirement::Flex(_), WidgetSizeRequirement::Flex(_)) |
-            (WidgetSizeRequirement::Flex(_), WidgetSizeRequirement::Max(_)) |
-            (WidgetSizeRequirement::Max(_), WidgetSizeRequirement::Flex(_)) => WidgetSizeRequirement::Flex(unsafe { NonZeroU32::new_unchecked(1) }),
-            (WidgetSizeRequirement::Flex(_), WidgetSizeRequirement::Fixed(size)) |
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::Flex(_)) |
-            (WidgetSizeRequirement::Flex(_), WidgetSizeRequirement::Min(size)) |
-            (WidgetSizeRequirement::Min(size), WidgetSizeRequirement::Flex(_)) => WidgetSizeRequirement::Min(size),
-            (WidgetSizeRequirement::Flex(_), WidgetSizeRequirement::MinMax(min, _)) |
-            (WidgetSizeRequirement::MinMax(min, _), WidgetSizeRequirement::Flex(_)) => WidgetSizeRequirement::Min(min),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::Fixed(other_size)) => WidgetSizeRequirement::Fixed(size.max(other_size)),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::Min(other_size)) |
-            (WidgetSizeRequirement::Min(other_size), WidgetSizeRequirement::Fixed(size)) => WidgetSizeRequirement::Min(size.max(other_size)),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::Max(other_size)) |
-            (WidgetSizeRequirement::Max(other_size), WidgetSizeRequirement::Fixed(size)) => WidgetSizeRequirement::Max(size.max(other_size)),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::MinMax(other_min, other_max)) |
-            (WidgetSizeRequirement::MinMax(other_min, other_max), WidgetSizeRequirement::Fixed(size)) => WidgetSizeRequirement::MinMax(size.min(other_min), size.max(other_max)),
-            (WidgetSizeRequirement::Min(size), WidgetSizeRequirement::Min(other_size)) => WidgetSizeRequirement::Min(size.min(other_size)),
-            (WidgetSizeRequirement::Min(size), WidgetSizeRequirement::Max(max)) |
-            (WidgetSizeRequirement::Max(max), WidgetSizeRequirement::Min(size)) => WidgetSizeRequirement::MinMax(size, max),
-            (WidgetSizeRequirement::Min(size), WidgetSizeRequirement::MinMax(other_min, max)) |
-            (WidgetSizeRequirement::MinMax(other_min, max), WidgetSizeRequirement::Min(size)) => WidgetSizeRequirement::MinMax(size.min(other_min), max),
-            (WidgetSizeRequirement::Max(size), WidgetSizeRequirement::Max(other_size)) => WidgetSizeRequirement::Max(size.max(other_size)),
-            (WidgetSizeRequirement::Max(size), WidgetSizeRequirement::MinMax(other_min, other_max)) |
-            (WidgetSizeRequirement::MinMax(other_min, other_max), WidgetSizeRequirement::Max(size)) => WidgetSizeRequirement::MinMax(other_min, size.max(other_max)),
-            (WidgetSizeRequirement::MinMax(min, max), WidgetSizeRequirement::MinMax(other_min, other_max)) => WidgetSizeRequirement::MinMax(min.min(other_min), max.max(other_max)),
+            (WidgetSizeRequirement::None, other) => other,
+            // Fixed, other
+            (WidgetSizeRequirement::Fixed { size: s1 }, WidgetSizeRequirement::Fixed { size: s2 }) =>
+                WidgetSizeRequirement::Fixed { size: s1.max(s2) },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::Flex { flex }) =>
+                WidgetSizeRequirement::Min { min: size, flex },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::Min { min, flex }) =>
+                WidgetSizeRequirement::Min { min: size.saturating_add(min.get()), flex },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::Max { max, flex }) =>
+                WidgetSizeRequirement::MinMax { min: size, max: max.saturating_add(size.get()), flex, },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::MinMax { min, max, flex }) =>
+                WidgetSizeRequirement::MinMax { min: min.saturating_add(size.get()), max: max.saturating_add(size.get()), flex },
+            // Flex, other
+            (WidgetSizeRequirement::Flex { flex }, WidgetSizeRequirement::Fixed { size }) =>
+                WidgetSizeRequirement::Min { min: size, flex },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Flex { flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::Min { min, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::Max { flex: f2, .. }) =>
+                WidgetSizeRequirement::Flex { flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::MinMax { min, flex: f2, .. }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get())},
+            // Min, other
+            (WidgetSizeRequirement::Min { min, flex }, WidgetSizeRequirement::Fixed { size }) => 
+                WidgetSizeRequirement::Min { min: min.saturating_add(size.get()), flex },
+            (WidgetSizeRequirement::Min { min, flex: f1 }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Min { min: m1, flex: f1 }, WidgetSizeRequirement::Min { min: m2, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Min { min, flex: f1 }, WidgetSizeRequirement::Max { flex: f2, .. }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Min { min: m1, flex: f1 }, WidgetSizeRequirement::MinMax { min: m2, flex: f2, .. }) =>
+                WidgetSizeRequirement::Min { min: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            // Max, other
+            (WidgetSizeRequirement::Max { max, flex }, WidgetSizeRequirement::Fixed { size }) =>
+                WidgetSizeRequirement::Max { max: max.saturating_add(size.get()), flex },
+            (WidgetSizeRequirement::Max { flex: f1, .. }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Flex { flex: f1.saturating_add(f2.get())},
+            (WidgetSizeRequirement::Max { flex: f1, .. }, WidgetSizeRequirement::Min { min, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Max { max: m1, flex: f1 }, WidgetSizeRequirement::Max { max: m2, flex: f2 }) =>
+                WidgetSizeRequirement::Max { max: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Max { max: m1, flex: f1 }, WidgetSizeRequirement::MinMax { min, max: m2, flex: f2 }) =>
+                WidgetSizeRequirement::MinMax { min, max: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            // MinMax, other
+            (WidgetSizeRequirement::MinMax { min, max, flex }, WidgetSizeRequirement::Fixed { size }) =>
+                WidgetSizeRequirement::MinMax { min: min.saturating_add(size.get()), max: max.saturating_add(size.get()), flex },
+            (WidgetSizeRequirement::MinMax { min, flex: f1, .. }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::MinMax { min: m1, flex: f1, .. }, WidgetSizeRequirement::Min { min: m2, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::MinMax { min, max: m1, flex: f1 }, WidgetSizeRequirement::Max { max: m2, flex: f2 }) =>
+                WidgetSizeRequirement::MinMax { min, max: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::MinMax { min: mi1, max: ma1, flex: f1 }, WidgetSizeRequirement::MinMax { min: mi2, max: ma2, flex: f2 }) =>
+            WidgetSizeRequirement::MinMax { min: mi1.saturating_add(mi2.get()), max: ma1.saturating_add(ma2.get()), flex: f1.saturating_add(f2.get()) },
         }
     }
 }
@@ -87,184 +134,244 @@ impl std::ops::BitAnd for WidgetSizeRequirement {
     /// v
     fn bitand(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (WidgetSizeRequirement::None, other) |
+            // None 
+            (WidgetSizeRequirement::None, WidgetSizeRequirement::None) => WidgetSizeRequirement::None,
             (other, WidgetSizeRequirement::None) => other,
-            (WidgetSizeRequirement::Flex(_), _) |
-            (_, WidgetSizeRequirement::Flex(_)) => WidgetSizeRequirement::Flex(unsafe { NonZeroU32::new_unchecked(1) }),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::Fixed(other_size)) => WidgetSizeRequirement::Fixed(size.saturating_add(other_size.get())),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::Min(other_size)) |
-            (WidgetSizeRequirement::Min(other_size), WidgetSizeRequirement::Fixed(size)) => WidgetSizeRequirement::Min(size.saturating_add(other_size.get())),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::Max(other_size)) |
-            (WidgetSizeRequirement::Max(other_size), WidgetSizeRequirement::Fixed(size)) => WidgetSizeRequirement::MinMax(size, size.saturating_add(other_size.get())),
-            (WidgetSizeRequirement::Fixed(size), WidgetSizeRequirement::MinMax(other_min, other_max)) |
-            (WidgetSizeRequirement::MinMax(other_min, other_max), WidgetSizeRequirement::Fixed(size)) => WidgetSizeRequirement::MinMax(size.saturating_add(other_min.get()), size.saturating_add(other_max.get())),
-            (WidgetSizeRequirement::Min(size), WidgetSizeRequirement::Min(other_size)) => WidgetSizeRequirement::Min(size.saturating_add(other_size.get())),
-            (WidgetSizeRequirement::Min(size), WidgetSizeRequirement::Max(_)) |
-            (WidgetSizeRequirement::Max(_), WidgetSizeRequirement::Min(size)) => WidgetSizeRequirement::Min(size),
-            (WidgetSizeRequirement::Min(size), WidgetSizeRequirement::MinMax(other_min, _)) |
-            (WidgetSizeRequirement::MinMax(other_min, _), WidgetSizeRequirement::Min(size)) => WidgetSizeRequirement::Min(size.saturating_add(other_min.get())),
-            (WidgetSizeRequirement::Max(size), WidgetSizeRequirement::Max(other_size)) => WidgetSizeRequirement::Max(size.saturating_add(other_size.get())),
-            (WidgetSizeRequirement::Max(size), WidgetSizeRequirement::MinMax(_, other_max)) |
-            (WidgetSizeRequirement::MinMax(_, other_max), WidgetSizeRequirement::Max(size)) => WidgetSizeRequirement::Max(size.saturating_add(other_max.get())),
-            (WidgetSizeRequirement::MinMax(min, max), WidgetSizeRequirement::MinMax(other_min, other_max)) => WidgetSizeRequirement::MinMax(min.saturating_add(other_min.get()), max.saturating_add(other_max.get())),
+            (WidgetSizeRequirement::None, other) => other,
+            // Fixed, other
+            (WidgetSizeRequirement::Fixed { size: s1 }, WidgetSizeRequirement::Fixed { size: s2 }) =>
+                WidgetSizeRequirement::Fixed { size: s1.saturating_add(s2.get()) },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::Flex { flex }) =>
+                WidgetSizeRequirement::Min { min: size, flex },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::Min { min, flex }) =>
+                WidgetSizeRequirement::Min { min: size.saturating_add(min.get()), flex },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::Max { max, flex }) =>
+                WidgetSizeRequirement::MinMax { min: size, max: max.saturating_add(size.get()), flex, },
+            (WidgetSizeRequirement::Fixed { size }, WidgetSizeRequirement::MinMax { min, max, flex }) =>
+                WidgetSizeRequirement::MinMax { min: min.saturating_add(size.get()), max: max.saturating_add(size.get()), flex },
+            // Flex, other
+            (WidgetSizeRequirement::Flex { flex }, WidgetSizeRequirement::Fixed { size }) =>
+                WidgetSizeRequirement::Min { min: size, flex },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Flex { flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::Min { min, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::Max { flex: f2, .. }) =>
+                WidgetSizeRequirement::Flex { flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Flex { flex: f1 }, WidgetSizeRequirement::MinMax { min, flex: f2, .. }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get())},
+            // Min, other
+            (WidgetSizeRequirement::Min { min, flex }, WidgetSizeRequirement::Fixed { size }) => 
+                WidgetSizeRequirement::Min { min: min.saturating_add(size.get()), flex },
+            (WidgetSizeRequirement::Min { min, flex: f1 }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Min { min: m1, flex: f1 }, WidgetSizeRequirement::Min { min: m2, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Min { min, flex: f1 }, WidgetSizeRequirement::Max { flex: f2, .. }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Min { min: m1, flex: f1 }, WidgetSizeRequirement::MinMax { min: m2, flex: f2, .. }) =>
+                WidgetSizeRequirement::Min { min: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            // Max, other
+            (WidgetSizeRequirement::Max { max, flex }, WidgetSizeRequirement::Fixed { size }) =>
+                WidgetSizeRequirement::Max { max: max.saturating_add(size.get()), flex },
+            (WidgetSizeRequirement::Max { flex: f1, .. }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Flex { flex: f1.saturating_add(f2.get())},
+            (WidgetSizeRequirement::Max { flex: f1, .. }, WidgetSizeRequirement::Min { min, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Max { max: m1, flex: f1 }, WidgetSizeRequirement::Max { max: m2, flex: f2 }) =>
+                WidgetSizeRequirement::Max { max: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::Max { max: m1, flex: f1 }, WidgetSizeRequirement::MinMax { min, max: m2, flex: f2 }) =>
+                WidgetSizeRequirement::MinMax { min, max: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            // MinMax, other
+            (WidgetSizeRequirement::MinMax { min, max, flex }, WidgetSizeRequirement::Fixed { size }) =>
+                WidgetSizeRequirement::MinMax { min: min.saturating_add(size.get()), max: max.saturating_add(size.get()), flex },
+            (WidgetSizeRequirement::MinMax { min, flex: f1, .. }, WidgetSizeRequirement::Flex { flex: f2 }) =>
+                WidgetSizeRequirement::Min { min, flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::MinMax { min: m1, flex: f1, .. }, WidgetSizeRequirement::Min { min: m2, flex: f2 }) =>
+                WidgetSizeRequirement::Min { min: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::MinMax { min, max: m1, flex: f1 }, WidgetSizeRequirement::Max { max: m2, flex: f2 }) =>
+                WidgetSizeRequirement::MinMax { min, max: m1.saturating_add(m2.get()), flex: f1.saturating_add(f2.get()) },
+            (WidgetSizeRequirement::MinMax { min: mi1, max: ma1, flex: f1 }, WidgetSizeRequirement::MinMax { min: mi2, max: ma2, flex: f2 }) =>
+            WidgetSizeRequirement::MinMax { min: mi1.saturating_add(mi2.get()), max: ma1.saturating_add(ma2.get()), flex: f1.saturating_add(f2.get()) },
         }
     }
 }
 
+impl core::ops::Add<u32> for WidgetSizeRequirement {
+    type Output = Self;
+    fn add(self, rhs: u32) -> Self::Output {
+        match self {
+            WidgetSizeRequirement::Fixed { size } => WidgetSizeRequirement::Fixed { size: size.saturating_add(rhs) },
+            WidgetSizeRequirement::Flex { flex } => match NonZeroU32::new(rhs) {
+                Some(min) => WidgetSizeRequirement::Min { min, flex },
+                None => WidgetSizeRequirement::Flex { flex },
+            },
+            WidgetSizeRequirement::Max { max, flex } => match NonZeroU32::new(rhs) {
+                Some(min) => WidgetSizeRequirement::MinMax { min, max: max.saturating_add(rhs), flex, },
+                None => WidgetSizeRequirement::Max { max, flex },
+            },
+            WidgetSizeRequirement::Min { min, flex } =>
+                WidgetSizeRequirement::Min { min: min.saturating_add(rhs), flex },
+            WidgetSizeRequirement::MinMax { min, max, flex } =>
+                WidgetSizeRequirement::MinMax { min: min.saturating_add(rhs), max: max.saturating_add(rhs), flex },
+            WidgetSizeRequirement::None => match NonZeroU32::new(rhs) {
+                Some(min) => WidgetSizeRequirement::Fixed { size: min },
+                None => WidgetSizeRequirement::None,
+            },
+        }
+    }
+}
+
+impl core::ops::Mul<u32> for WidgetSizeRequirement {
+    type Output = Self;
+    fn mul(self, rhs: u32) -> Self::Output {
+        match (NonZeroU32::new(rhs), self) {
+            (Some(rhs), WidgetSizeRequirement::Fixed { size }) => WidgetSizeRequirement::Fixed { size: size.saturating_mul(rhs) },
+            (Some(rhs), WidgetSizeRequirement::Flex { flex }) => WidgetSizeRequirement::Flex { flex: flex.saturating_mul(rhs) },
+            (Some(rhs), WidgetSizeRequirement::Max { max, flex }) => WidgetSizeRequirement::Max { max: max.saturating_mul(rhs), flex: flex.saturating_mul(rhs) },
+            (Some(rhs), WidgetSizeRequirement::Min { min, flex }) => WidgetSizeRequirement::Min { min: min.saturating_mul(rhs), flex: flex.saturating_mul(rhs) },
+            (Some(rhs), WidgetSizeRequirement::MinMax { min, max, flex }) => WidgetSizeRequirement::MinMax { min: min.saturating_mul(rhs), max: max.saturating_mul(rhs), flex: flex.saturating_mul(rhs) },
+            (None, _) | (Some(_), WidgetSizeRequirement::None) => WidgetSizeRequirement::None,
+        }
+    }
+}
 
 impl WidgetSizeRequirement {
+    /// Distribute a given available_space between multiple requirements.
+    /// The algorithm will do it's best to respect all provided requirements, but it is sometimes impossible.
+    /// todo: rework this whole thing, as it is super primitive for now.
+    /// I'm convinced there is a nice mathy elegant way to do it, and I've started searching it.
     pub fn distribute_available_size<const N: usize>(requirements: [WidgetSizeRequirement; N], available_space: NonZeroU32) -> [u32; N] {
 
-        let min_size = get_min_size(&requirements);
+        let mut results = [0; N];
 
-        if min_size > available_space.get() {
-            if cfg!(debug_assertions) {
-                println!("Overflow : Not enough space ({}) to meet the minimum size requirements ({}) of combined requirements.", available_space, min_size);
-            }
-            fill_available_space(requirements, available_space, min_size)
+        // Step 1: get the number of min space required and flex components
+
+        let (min_requirements, total_flex): (u32, u32) = requirements.iter().map(|req| match req {
+            WidgetSizeRequirement::Fixed { size } => (size.get(), 0),
+            WidgetSizeRequirement::Flex { flex } => (0, flex.get()),
+            WidgetSizeRequirement::Max { flex, .. } => (0, flex.get(), ),
+            WidgetSizeRequirement::Min { min, flex } => (min.get(), flex.get()),
+            WidgetSizeRequirement::MinMax { min, flex, .. } => (min.get(), flex.get(), ),
+            WidgetSizeRequirement::None => (0, 0),
+        }).fold((0, 0), |(a1, b1), (a2, b2)| (a1 + a2, b1 + b2));
+
+        if min_requirements > available_space.get() {
+            panic!("TODO: handle case where not enough space for min requirements! ({min_requirements} required, got {available_space})");            
         }
-        else {
-            let mut sizes = [0; N];
-            let mut remaining_space = available_space.get();
-            // assign min values first !
-            for (i, requirement) in requirements.iter().enumerate() {
-                match requirement {
-                    WidgetSizeRequirement::Fixed(size) => {
-                        sizes[i] = size.get();
-                        remaining_space -= sizes[i];
-                    },
-                    _ => {},
-                }
-            }
-            // check flex values
-            let flex_space = get_flex_space(&requirements, remaining_space);
-            // assign every min values that are bigger than the flex space
-            for (i, requirement) in requirements.iter().enumerate() {
-                match requirement {
-                    WidgetSizeRequirement::MinMax(size, _) |
-                    WidgetSizeRequirement::Min(size) => if size.get() > flex_space {
-                        sizes[i] = size.get();
-                        remaining_space -= sizes[i];
-                    },
-                    _ => {},
-                }
-            }
-            loop {
-                // while there are max that are too small for the flex space, assign them and recompute
-                let flex_space = get_flex_space(&requirements, remaining_space);
-                let mut all_max_assigned = true;
-                for (i, requirement) in requirements.iter().enumerate() {
-                    match requirement {
-                        WidgetSizeRequirement::Max(max) |
-                        WidgetSizeRequirement::MinMax(_, max) => if sizes[i] == 0 && max.get() < flex_space {
-                            // widget cannot grow to fill flex space
-                            sizes[i] = max.get();
-                            all_max_assigned = false;
-                        },
-                        _ => {},
-                    }
-                }
-                if all_max_assigned {
-                    break;
-                }
-            }
-            // assign flex values
-            let flex_space = get_flex_space(&requirements, remaining_space);
-            for (i, requirement) in requirements.iter().enumerate() {
-                match requirement {
-                    WidgetSizeRequirement::Max(_) |
-                    WidgetSizeRequirement::MinMax(_, _) |
-                    WidgetSizeRequirement::Min(_) |
-                    WidgetSizeRequirement::Flex(_) => if sizes[i] == 0 {
-                        sizes[i] = flex_space;
-                        remaining_space -= flex_space;
-                    },
-                    _ => {},
-                }
-            }
-            // finally, it may remains pixels because of euclidian div: assign it to the widgets
-            while remaining_space > 0 {
-                for (i, requirement) in requirements.iter().enumerate() {
-                    match requirement {
-                        WidgetSizeRequirement::Max(max) |
-                        WidgetSizeRequirement::MinMax(_, max)  => if sizes[i] + remaining_space <= max.get() {
-                            sizes[i] += 1.min(remaining_space);
-                            remaining_space -= 1.min(remaining_space);
-                        }
-                        WidgetSizeRequirement::Min(_) |
-                        WidgetSizeRequirement::Flex(_) => {
-                            sizes[i] += 1.min(remaining_space);
-                            remaining_space -= 1.min(remaining_space);
-                        },
-                        _ => {},
-                    }
-                }
-            }
 
-            sizes
-        }
-    }
-}
+        // Step 2: distribute min requirements
 
-
-fn get_min_size(requirements: &[WidgetSizeRequirement]) -> u32 {
-    requirements.iter().map(|requirement| {
-        match requirement {
-            WidgetSizeRequirement::Fixed(size) |
-            WidgetSizeRequirement::Min(size) |
-            WidgetSizeRequirement::MinMax(size, _) => size.get(),
-            WidgetSizeRequirement::Max(_) |
-            WidgetSizeRequirement::Flex(_) |
-            WidgetSizeRequirement::None => 0,
-        }
-    }).sum()
-}
-
-fn fill_available_space<const N: usize>(requirements: [WidgetSizeRequirement; N], available_space: NonZeroU32, min_size: u32) -> [u32; N] {
-    let mut remaining_space = available_space.get();
-    let mut sizes = [0; N];
-
-    for (i, requirement) in requirements.iter().enumerate() {
-        match requirement {
-            WidgetSizeRequirement::Fixed(size) |
-            WidgetSizeRequirement::Min(size) |
-            WidgetSizeRequirement::MinMax(size, _) => {
-                sizes[i] = size.get() * available_space.get() / min_size;
-                remaining_space -= sizes[i];
-            },
-            _ => {},
-        }
-    }
-    // finally, it may remains a pixel because of euclidian div: assign it to the first widget
-    while remaining_space > 0 {
-        for (i, requirement) in requirements.iter().enumerate() {
+        for (result, requirement) in results.iter_mut().zip(requirements.iter()) {
             match requirement {
-                WidgetSizeRequirement::Fixed(_) |
-                WidgetSizeRequirement::Min(_) |
-                WidgetSizeRequirement::MinMax(_, _) => {
-                    sizes[i] += 1.min(remaining_space);
-                    remaining_space -= 1.min(remaining_space);
-                },
+                WidgetSizeRequirement::Fixed { size: min } |
+                WidgetSizeRequirement::Min { min, .. } |
+                WidgetSizeRequirement::MinMax { min, .. } => *result = min.get(),
                 _ => {},
             }
         }
-    }
+        
+        // Step 3: distribute flex space
 
-    sizes
+        let mut available_flex_space = available_space.get() - min_requirements;
+        let mut total_flex = total_flex;
+        let mut progress_have_been_made = true;
+
+        while progress_have_been_made {
+
+            // we keep giving space as long as there is:    
+            // - space to give
+            // - wigets than can accept more space (flex)
+            // - changes that have been made last iteration
+
+            progress_have_been_made = false;
+            if available_flex_space == 0 { break; }
+            let non_zero_total_flex = match NonZeroU32::new(total_flex) {
+                None => break,
+                Some(value) => value,
+            };
+            
+            
+            // creates an iterator over the space we computed for each flex unit.
+            // this iterator will repeat flex_val1 fv1 amount and flex_val2 fv2_amount
+            // this way, we are sure to distribute all flex space, taking remainder of euclidian div into account.
+            let mut flex_size_it = full_integer_div(available_flex_space, non_zero_total_flex);
+            
+            for (result, requirement) in results.iter_mut().zip(requirements) {
+                match requirement {
+                    // for widgets with max property : 
+                    // distribute flex, maxing to their max.
+                    // if we reach their max, remove their flex as part of the equation.
+                    WidgetSizeRequirement::Max { max, flex } | 
+                    WidgetSizeRequirement::MinMax { max, flex, .. } => {
+                        if *result < max.get() {
+                            // get the amount of flex space from the iterator according to our flex value
+                            let consumed = flex_size_it.next_flex(flex);
+                            if consumed >= *result - max.get() {
+                                total_flex -= flex.get();
+                                available_flex_space -= consumed;
+                                *result = max.get();
+                            }
+                            else {
+                                available_flex_space -= consumed;
+                                *result += consumed;
+                            }
+                            progress_have_been_made = true;
+                        }
+                    },
+                    // for purely flex widgets, 
+                    WidgetSizeRequirement::Flex { flex } |
+                    WidgetSizeRequirement::Min { flex, .. } => {
+                        let consumed = flex_size_it.next_flex(flex);
+                        available_flex_space -= consumed;
+                        *result += consumed;
+                        progress_have_been_made = true;
+                    },
+                    _ => {},
+                }
+            }
+        }
+
+        results
+    }
 }
 
-fn get_flex_space(requirements: &[WidgetSizeRequirement], remaining_space: u32) -> u32 {
-    let flex_count = requirements.iter().map(|requirement| match requirement {
-        WidgetSizeRequirement::Min(_) |
-        WidgetSizeRequirement::Max(_) |
-        WidgetSizeRequirement::MinMax(_, _) => 1,
-        WidgetSizeRequirement::Flex(flex) => flex.get(),
-        _ => 0,
-    }).sum::<u32>();
-    if flex_count == 0 {
-        0
-    }
-    else {
-        remaining_space / flex_count
+
+struct DividedAvailableFlexSpace {
+    part_size: u32,
+    big_part_count: u32,
+    small_part_count: u32,
+}
+
+impl DividedAvailableFlexSpace {
+    fn next_flex(&mut self, flex: NonZeroU32) -> u32 {
+        let mut flex_to_take = flex.get();
+        let taken_from_big = self.big_part_count.min(flex_to_take);
+        self.big_part_count -= taken_from_big;
+        flex_to_take -= taken_from_big;
+        let taken_from_small = self.small_part_count.min(flex_to_take);
+        self.small_part_count -= taken_from_small;
+        taken_from_big * (self.part_size + 1) + taken_from_small * self.part_size
     }
 }
+
+/// Integer division, splitting the remainer into part of the results.
+/// The returned value is in the form ((res1, amount1), (res2, amount2))
+/// where the res1 is the quotient of the div, and
+/// - res1 * amount1 + res2 * amount2 = divedend,
+/// - res1 + 1 = res2
+/// - amount1 + amount 2 = divisor
+/// This basically performs an integer division, adding the remainder into part of the results
+/// This is usefull when splitting spaces onto widgets.
+fn full_integer_div(dividend: u32, divisor: NonZeroU32) -> DividedAvailableFlexSpace {
+    let quotient = dividend / divisor.get();
+    let remainder = dividend % divisor.get();
+    DividedAvailableFlexSpace {
+        part_size: quotient,
+        big_part_count: remainder,
+        small_part_count: divisor.get() - remainder,
+    }
+}
+
+
+

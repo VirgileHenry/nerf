@@ -1,20 +1,13 @@
 [package]
 name = "nerf"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-
-[dev-dependencies]
-criterion = "0.3.0"
-
-[[bench]]
-name = "nerf"
-harness = false
 
 [dependencies]
 cosmic-text = { version = "0.9.0", optional = true }
-softbuffer = "0.3.0"
+softbuffer = "0.4.3"
 tiny-skia = { version = "0.11.1", optional = true }
-winit = "0.28.6"
+winit = "0.30.0"
 
 [features]
 default = ["skia", "text"]

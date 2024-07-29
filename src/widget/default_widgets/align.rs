@@ -1,12 +1,10 @@
 use std::num::NonZeroU32;
 
 use crate::{
-    Widget,
-    geometry::{
+    app::event::AppEvent, geometry::{
         alignment::Alignment,
         size_requirements::WidgetSizeRequirement
-    },
-    app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect,
+    }, Rect, Widget
 };
 
 
@@ -14,36 +12,35 @@ use crate::{
 /// The Align widget will take the same space as it's child.
 /// However, if we provide it with more space, it will align the child in the extra space,
 /// according the the alignment parameter.
-pub struct Align {
-    child: Box<dyn Widget>,
+pub struct Align<UserEvent, Child: Widget<UserEvent>> {
+    _m: core::marker::PhantomData<UserEvent>,
+    child: Child,
     alignment: Alignment,
 }
 
-impl Align {
-    pub fn new(alignment: Alignment, child: Box<dyn Widget>) -> Box<Align> {
-        Box::new(Align {
+impl<UserEvent, Child: Widget<UserEvent>> Align<UserEvent, Child> {
+    pub fn new(alignment: Alignment, child: Child) -> Self {
+        Align {
+            _m: core::marker::PhantomData,
             child,
             alignment,
-        })
+        }
     }
 
-    pub fn get_child_and_remaining_size(requirement: WidgetSizeRequirement, available_size: NonZeroU32) -> (NonZeroU32, u32) {
-        match requirement {
+    fn get_child_and_remaining_size(child_requirement: WidgetSizeRequirement, available_size: NonZeroU32) -> (NonZeroU32, u32) {
+        match child_requirement {
             // child can have any size, so we give it all the available space.
             WidgetSizeRequirement::None |
-            WidgetSizeRequirement::Flex(_)  |
-            WidgetSizeRequirement::Min(_) => (available_size, 0),
+            WidgetSizeRequirement::Flex { .. } |
+            WidgetSizeRequirement::Min { .. } => (available_size, 0),
             // child does not want to be bigger than a given size,
             // so we give it the minimum between the available space and the size it wants.
-            WidgetSizeRequirement::Fixed(size) |
-            WidgetSizeRequirement::Max(size) |
-            WidgetSizeRequirement::MinMax(_, size) => {
-                if size > available_size {
-                    (available_size, 0)
-                } else {
-                    (size, available_size.get() - size.get())
-                }
-            },
+            WidgetSizeRequirement::Fixed { size: max, .. } |
+            WidgetSizeRequirement::Max { max, .. } |
+            WidgetSizeRequirement::MinMax { max, .. } => (
+                max.min(available_size),
+                available_size.get().checked_sub(max.get()).unwrap_or(0)
+            ),
         }
     }
 
@@ -60,7 +57,8 @@ impl Align {
     }
 }
 
-impl Widget for Align {
+impl<UserEvent, Child: Widget<UserEvent>> Widget<UserEvent> for Align<UserEvent, Child> {
+    type EventResponse = Child::EventResponse;
     fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         let child_rect = self.compute_child_rect(rect);
         self.child.draw(canvas, child_rect);
@@ -70,7 +68,7 @@ impl Widget for Align {
         self.child.min_space_requirements()
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
+    fn handle_event(&mut self, event: &AppEvent<UserEvent>, rect: Rect) -> Self::EventResponse {
         let child_rect = self.compute_child_rect(rect);
         self.child.handle_event(event, child_rect)
     }

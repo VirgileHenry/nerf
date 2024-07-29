@@ -1,33 +1,56 @@
 
 use crate::{
-    Widget,
-    app::event::{input_event::InputEvent, event_responses::EventResponse}, Rect
+    app::event::AppEvent, utils::nonable::Nonable, Rect, Widget
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ButtonState {
+pub enum ButtonState {
     Idle,
     Hovered,
     Pressed,
     PressedLeft,
 }
 
-pub struct Button {
-    child: Box<dyn Widget>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ButtonResponse {
+    None,
+    Changed {
+        prev: ButtonState,
+        new: ButtonState,
+    },
+    /// Special value for Changed where prev is pressed, new is hovered
+    Clicked,
+}
+
+impl Nonable for ButtonResponse {
+    fn none() -> Self { ButtonResponse::None }
+    fn is_none(&self) -> bool {
+        match self {
+            ButtonResponse::None => true,
+            _ => false,
+        }
+    }
+}
+
+pub struct Button<UserEvent, Child: Widget<UserEvent>> {
+    _m: core::marker::PhantomData<UserEvent>,
+    child: Child,
     state: ButtonState,
 }
 
 
-impl Button {
-    pub fn new(child: Box<dyn Widget>) -> Box<Button> {
-        Box::new(Button {
+impl<UserEvent, Child: Widget<UserEvent>> Button<UserEvent, Child> {
+    pub fn new(child: Child) -> Self {
+        Button {
+            _m: core::marker::PhantomData,
             child,
             state: ButtonState::Idle,
-        })
+        }
     }
 }
 
-impl Widget for Button {
+impl<UserEvent, Child: Widget<UserEvent>> Widget<UserEvent> for Button<UserEvent, Child> {
+    type EventResponse = (ButtonResponse, Child::EventResponse);
     fn draw(&self, canvas: &mut crate::drawing::canvas::Canvas, rect: Rect) {
         self.child.draw(canvas, rect);
     }
@@ -36,53 +59,48 @@ impl Widget for Button {
         self.child.min_space_requirements()
     }
 
-    fn handle_event(&mut self, event: InputEvent, rect: Rect) -> EventResponse {
-        let own_response = match (event.clone(), self.state) {
-            (InputEvent::CursorMoved { position }, ButtonState::Idle) => if position.is_in_rect(rect) {
+    fn handle_event(&mut self, event: &AppEvent<UserEvent>, rect: Rect) -> Self::EventResponse {
+        let child_response = self.child.handle_event(event, rect);
+        let own_response = match (event, self.state) {
+            (AppEvent::CursorMoved { position }, ButtonState::Idle) => if position.is_in_rect(rect) {
                 self.state = ButtonState::Hovered;
-                EventResponse::REDRAW_REQUEST
+                ButtonResponse::Changed { prev: ButtonState::Idle, new: ButtonState::Hovered }
             } else {
-                EventResponse::NONE
+                ButtonResponse::None
             },
-            (InputEvent::CursorMoved { position }, ButtonState::Hovered) => if position.is_in_rect(rect) {
-                EventResponse::NONE
+            (AppEvent::CursorMoved { position }, ButtonState::Hovered) => if position.is_in_rect(rect) {
+                ButtonResponse::None
             } else {
                 self.state = ButtonState::Idle;
-                EventResponse::REDRAW_REQUEST
+                ButtonResponse::Changed { prev: ButtonState::Hovered, new: ButtonState::Idle }
             },
-            (InputEvent::CursorMoved { position }, ButtonState::Pressed) => if position.is_in_rect(rect) {
-                EventResponse::NONE
+            (AppEvent::CursorMoved { position }, ButtonState::Pressed) => if position.is_in_rect(rect) {
+                ButtonResponse::None
             } else {
                 self.state = ButtonState::PressedLeft;
-                EventResponse::REDRAW_REQUEST
+                ButtonResponse::Changed { prev: ButtonState::Pressed, new: ButtonState::PressedLeft }
             },
-            (InputEvent::CursorMoved { position }, ButtonState::PressedLeft) => if position.is_in_rect(rect) {
+            (AppEvent::CursorMoved { position }, ButtonState::PressedLeft) => if position.is_in_rect(rect) {
                 self.state = ButtonState::Pressed;
-                EventResponse::REDRAW_REQUEST
+                ButtonResponse::Changed { prev: ButtonState::PressedLeft, new: ButtonState::Pressed }
             } else {
-                EventResponse::NONE
+                ButtonResponse::None
             },
-            (InputEvent::MouseInput { state, button }, ButtonState::Hovered) => if state == winit::event::ElementState::Pressed && button == winit::event::MouseButton::Left {
+            (AppEvent::MouseInput { state: winit::event::ElementState::Pressed, button: winit::event::MouseButton::Left }, ButtonState::Hovered) => {
                 self.state = ButtonState::Pressed;
-                EventResponse::REDRAW_REQUEST
-            } else {
-                EventResponse::NONE
+                ButtonResponse::Changed { prev: ButtonState::Hovered, new: ButtonState::Pressed }
             },
-            (InputEvent::MouseInput { state, button }, ButtonState::Pressed) => if state == winit::event::ElementState::Released && button == winit::event::MouseButton::Left {
+            (AppEvent::MouseInput { state: winit::event::ElementState::Released, button: winit::event::MouseButton::Left }, ButtonState::Pressed) => {
                 self.state = ButtonState::Hovered;
-                EventResponse::REDRAW_REQUEST | EventResponse::CALLBACK
-            } else {
-                EventResponse::NONE
+                ButtonResponse::Clicked
             },
-            (InputEvent::MouseInput { state, button }, ButtonState::PressedLeft) => if state == winit::event::ElementState::Released && button == winit::event::MouseButton::Left {
+            (AppEvent::MouseInput { state: winit::event::ElementState::Released, button: winit::event::MouseButton::Left }, ButtonState::PressedLeft) => {
                 self.state = ButtonState::Idle;
-                EventResponse::REDRAW_REQUEST
-            } else {
-                EventResponse::NONE
+                ButtonResponse::Changed { prev: ButtonState::PressedLeft, new: ButtonState::Idle }
             },
-            _ => EventResponse::NONE,
+            _ => ButtonResponse::None
         };
 
-        own_response | self.child.handle_event(event, rect)
+        (own_response, child_response)
     }
 }
